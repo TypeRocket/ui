@@ -1,0 +1,49 @@
+# Your Files
+
+# Vendor
+node_modules
+package-lock.json
+vendor/*
+!vendor/composer
+!vendor/typerocket
+vendor/typerocket/core/assets
+vendor/typerocket/core/templates
+
+# Environment
+.env
+/wp-config.php
+/sql/run/*
+.phpunit.result.cache
+npm-debug.log
+yarn-error.log
+/galaxy-config.php
+
+# WordPress
+/wordpress/*.*
+/wordpress/.maintenance
+/wordpress/wp-admin
+/wordpress/wp-includes
+/wordpress/wp-content/*
+!/wordpress/wp-content/mu-plugins/
+
+# Source Maps
+*.css.map
+*.js.map
+
+# OS
+*~
+.DS_Store*
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.idea
+.settings
+.project
+.build
+.vscode
+
+# File Types
+*.log
+*.zip
+.svn

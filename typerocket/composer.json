@@ -1,0 +1,40 @@
+{
+    "name": "typerocket/typerocket",
+    "description": "TypeRocket for WordPress.",
+    "keywords": ["framework", "typerocket", "wordpress"],
+    "license": "GPL-3.0-or-later",
+    "homepage": "https://typerocket.com",
+    "repositories": {
+        "wpackagist": {
+            "type": "composer",
+            "url": "https://wpackagist.org"
+        }
+    },
+    "authors": [
+        {
+            "name": "Robojuice",
+            "homepage": "https://robojuice.com",
+            "role": "Creator"
+        }
+    ],
+    "support": {
+        "docs": "https://typerocket.com/docs/v5/"
+    },
+    "require": {
+        "php": ">=7.2.5",
+        "typerocket/core": "dev-main",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "7.4.*"
+    },
+    "scripts": {
+        "post-create-project-cmd": [
+            "php galaxy config:seed"
+        ],
+        "post-update-cmd": [
+            "php galaxy core:update"
+        ]
+    },
+    "minimum-stability": "stable"
+}
