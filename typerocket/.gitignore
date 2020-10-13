@@ -5,6 +5,7 @@ node_modules
 package-lock.json
 vendor/*
 !vendor/composer
+!vendor/autoload.php
 !vendor/typerocket
 vendor/typerocket/core/assets
 vendor/typerocket/core/templates
