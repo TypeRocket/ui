@@ -387,8 +387,8 @@
             "version": "dev-main",
             "dist": {
                 "type": "zip",
-                "url": "https://typerocket.repo.packagist.com/robojuice/dists/typerocket/core/dev-main/a85ac592e0dc7df1f0a624caf15061b015d89107.zip",
-                "reference": "a85ac592e0dc7df1f0a624caf15061b015d89107",
+                "url": "https://typerocket.repo.packagist.com/robojuice/dists/typerocket/core/dev-main/50399cb2df3c183bd745eb57b580441c5a1daf4d.zip",
+                "reference": "50399cb2df3c183bd745eb57b580441c5a1daf4d",
                 "mirrors": [
                     {
                         "url": "https://typerocket.repo.packagist.com/robojuice/dists/%package%/%version%/r%reference%.%type%",
@@ -434,10 +434,10 @@
             ],
             "support": {
                 "docs": "https://typerocket.com/docs/v5/",
-                "source": "https://github.com/TypeRocket/core/tree/main",
+                "source": "https://github.com/TypeRocket/core/tree/v5.0.1",
                 "issues": "https://github.com/TypeRocket/core/issues"
             },
-            "time": "2020-10-13T01:44:50+00:00"
+            "time": "2020-10-14T01:35:20+00:00"
         }
     ],
     "packages-dev": [

@@ -5,7 +5,6 @@ Plugin URI: https://typerocket.com/ui/
 Description: This plugin provides a powerful user interface for creating post types, taxonomies, and meta boxes.
 Version: 5.0.0
 Requires PHP: 7.2
-Tags: videos, fitvids, responsive
 Author: TypeRocket
 Author URI: https://typerocket.com
 License: GPLv3 or later

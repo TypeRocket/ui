@@ -30,6 +30,7 @@ class PostType extends Registrable
     protected $rootSlug = false;
     protected $featureless = false;
     protected $forceDisableGutenberg = false;
+    protected $maxIdLength = 20;
 
     /**
      * Make or Modify Post Type.
@@ -100,7 +101,8 @@ class PostType extends Registrable
             'model' => null,
             'controller' => null
         ];
-        $this->id       = ! $this->id ? $singular : $this->id;
+
+        $this->setId(! $this->id ? $singular : $this->id);
 
         if (array_key_exists( 'capabilities', $settings ) && $settings['capabilities'] === true) :
             $settings['capabilities'] = (new Roles)->getCustomPostTypeCapabilities($singular, $plural);
@@ -179,9 +181,9 @@ class PostType extends Registrable
     {
         if(!$plural) { $plural = Inflect::pluralize($singular); }
 
-        $upperSingular = $keep_case ? $singular : mb_ucwords( $singular );
+        $upperSingular = $keep_case ? $singular : tr_mb_ucwords( $singular );
         $lowerSingular = $keep_case ? $singular : mb_strtolower( $singular );
-        $upperPlural   = $keep_case ? $plural : mb_ucwords( $plural );
+        $upperPlural   = $keep_case ? $plural : tr_mb_ucwords( $plural );
         $pluralLower   = $keep_case ? $plural : mb_strtolower( $plural );
 
         $context = 'post_type:' . $this->getId();
