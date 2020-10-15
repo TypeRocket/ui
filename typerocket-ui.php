@@ -18,9 +18,11 @@ class TypeRocketUIPlugin
     public $activating = false;
     public $id = 'typerocket_ui_register';
 
+    const OPTION = 'tr_registered';
+
     public function __construct()
     {
-        if(defined('TR_PLUGIN_INSTALL') || defined('TR_PATH')) {
+        if(defined('TYPEROCKET_PLUGIN_INSTALL') || defined('TYPEROCKET_PATH')) {
             add_filter('plugin_action_links',function ($actions, $plugin_file) {
                 if( $found = strpos(__FILE__, $plugin_file) ) {
                     $actions['settings'] = '<span style="color: red">Inactive Install</span>';
@@ -36,8 +38,9 @@ class TypeRocketUIPlugin
         require 'typerocket/init.php';
 
         $this->path = plugin_dir_path(__FILE__);
-        define('TR_AUTO_LOADER', '__return_false');
+        define('TYPEROCKET_AUTO_LOADER', '__return_false');
         add_filter('plugin_action_links', [$this, 'links'], 10, 2 );
+        add_filter('tr_auth_policy_check', '__return_false', 10, 2 );
     }
 
     public function links($actions, $plugin_file) {
@@ -51,13 +54,13 @@ class TypeRocketUIPlugin
 
     public function loadConfig()
     {
-        define('TR_PLUGIN_INSTALL', __DIR__);
-        define('TR_CORE_CONFIG_PATH', __DIR__ . '/typerocket/config' );
-        define('TR_APP_NAMESPACE', 'TR_UI');
-        define('TR_ROOT_WP', ABSPATH);
+        define('TYPEROCKET_PLUGIN_INSTALL', __DIR__);
+        define('TYPEROCKET_CORE_CONFIG_PATH', __DIR__ . '/typerocket/config' );
+        define('TYPEROCKET_APP_NAMESPACE', 'TypeRocketUIPlugin');
+        define('TYPEROCKET_ROOT_WP', ABSPATH);
 
-        define('TR_AUTOLOAD_APP', [
-            'prefix' => TR_APP_NAMESPACE . '\\',
+        define('TYPEROCKET_AUTOLOAD_APP', [
+            'prefix' => TYPEROCKET_APP_NAMESPACE . '\\',
             'folder' => __DIR__ . '/typerocket/app/',
         ]);
     }

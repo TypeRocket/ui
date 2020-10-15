@@ -6,5 +6,4 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
-    '18b840c6eff6cb7ed2b94475f3f1a95a' => $vendorDir . '/typerocket/core/functions/helpers.php',
 );

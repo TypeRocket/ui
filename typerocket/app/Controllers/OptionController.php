@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\Option;
+use TypeRocketUIPlugin\Models\Option;
 use TypeRocket\Controllers\WPOptionController;
 
 class OptionController extends WPOptionController

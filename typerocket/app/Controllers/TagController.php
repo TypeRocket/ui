@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\Tag;
+use TypeRocketUIPlugin\Models\Tag;
 use TypeRocket\Controllers\WPTermController;
 
 class TagController extends WPTermController

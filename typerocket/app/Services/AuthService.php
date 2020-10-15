@@ -1,5 +1,5 @@
 <?php
-namespace TR_UI\Services;
+namespace TypeRocketUIPlugin\Services;
 
 use TypeRocket\Services\AuthorizerService;
 

@@ -3,6 +3,7 @@ namespace TypeRocket\Console\Commands;
 
 use TypeRocket\Console\Command;
 use TypeRocket\Utility\File;
+use TypeRocket\Utility\Helper;
 use TypeRocket\Utility\Sanitize;
 use TypeRocket\Utility\Str;
 
@@ -44,14 +45,14 @@ class MakeComponent extends Command
             $command = Str::camelize($key);
         }
 
-        list($namespace, $class) = Str::splitAt('\\', $command, true);
-        $namespace = implode('\\',array_filter([TR_APP_NAMESPACE, 'Components', $namespace]));
+        [$namespace, $class] = Str::splitAt('\\', $command, true);
+        $namespace = implode('\\',array_filter([Helper::appNamespace(), 'Components', $namespace]));
 
         $tags = ['{{namespace}}', '{{component}}', '{{title}}'];
         $replacements = [ $namespace, $class, $title ];
         $template = __DIR__ . '/../../../templates/Component.txt';
 
-        $app_path = tr_config('paths.app');
+        $app_path = \TypeRocket\Core\Config::get('paths.app');
         $command_file = $app_path . '/Components/' . str_replace("\\",'/', $command) . ".php";
         $command_path = substr($command_file, 0, -1 + -strlen(basename($command_file)) ) ;
 
@@ -69,7 +70,7 @@ class MakeComponent extends Command
         if( $command_file ) {
             $this->success('Component created: ' . $command );
 
-            $file = new File(TR_CORE_CONFIG_PATH . '/components.php');
+            $file = new File(TYPEROCKET_CORE_CONFIG_PATH . '/components.php');
 
             if($file->exists()) {
                 $eol = PHP_EOL;
@@ -80,7 +81,7 @@ class MakeComponent extends Command
             }
 
             $this->warning('Add your new component ' . $command . ' to a group in config/components.php' );
-            $this->warning('Add a thumbnail for your component: ' . tr_config('urls.components') . '/' . Sanitize::underscore($command) . '.png' );
+            $this->warning('Add a thumbnail for your component: ' . \TypeRocket\Core\Config::get('urls.components') . '/' . Sanitize::underscore($command) . '.png' );
         } else {
             $this->error('TypeRocket ' . $command . ' exists.');
         }

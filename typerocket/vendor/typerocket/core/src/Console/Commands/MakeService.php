@@ -3,6 +3,7 @@ namespace TypeRocket\Console\Commands;
 
 use TypeRocket\Console\Command;
 use TypeRocket\Utility\File;
+use TypeRocket\Utility\Helper;
 use TypeRocket\Utility\Str;
 
 class MakeService extends Command
@@ -29,12 +30,12 @@ class MakeService extends Command
     {
         $name = $this->getClassArgument('name');
 
-        list($namespace, $class) = Str::splitAt('\\', $name, true);
-        $namespace = implode('\\',array_filter([TR_APP_NAMESPACE, 'Services', $namespace]));
+        [$namespace, $class] = Str::splitAt('\\', $name, true);
+        $namespace = implode('\\',array_filter([Helper::appNamespace(), 'Services', $namespace]));
         $replacements = [ $namespace, $class];
         $tags = ['{{namespace}}', '{{service}}'];
 
-        $app_path = tr_config('paths.app');
+        $app_path = \TypeRocket\Core\Config::get('paths.app');
         $service_file = $app_path . '/Services/' . str_replace("\\",'/', $name) . ".php";
         $service_path = substr($service_file, 0, -1 + -strlen(basename($service_file)) ) ;
 

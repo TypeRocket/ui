@@ -1,9 +1,10 @@
 <?php
-namespace TR_UI\Models;
+namespace TypeRocketUIPlugin\Models;
 
 use TypeRocket\Models\WPPost;
 
 class Page extends WPPost
 {
     protected $postType = 'page';
+    protected $closed = true;
 }

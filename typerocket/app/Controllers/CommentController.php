@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\Comment;
+use TypeRocketUIPlugin\Models\Comment;
 use TypeRocket\Controllers\WPCommentController;
 
 class CommentController extends WPCommentController

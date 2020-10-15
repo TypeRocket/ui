@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\Page;
+use TypeRocketUIPlugin\Models\Page;
 use TypeRocket\Controllers\WPPostController;
 
 class PageController extends WPPostController

@@ -1,9 +1,9 @@
 <?php
-namespace TR_UI\Models;
+namespace TypeRocketUIPlugin\Models;
 
 use TypeRocket\Models\WPUser;
 
 class User extends WPUser
 {
-
+    protected $closed = true;
 }

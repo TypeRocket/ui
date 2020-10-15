@@ -3,6 +3,7 @@ namespace TypeRocket\Console\Commands;
 
 use TypeRocket\Console\Command;
 use TypeRocket\Utility\File;
+use TypeRocket\Utility\Helper;
 use TypeRocket\Utility\Str;
 
 class MakeFields extends Command
@@ -29,12 +30,12 @@ class MakeFields extends Command
     {
         $name = $this->getClassArgument('name');
 
-        list($namespace, $class) = Str::splitAt('\\', $name, true);
-        $namespace = implode('\\',array_filter([TR_APP_NAMESPACE, 'Http\Fields', $namespace]));
+        [$namespace, $class] = Str::splitAt('\\', $name, true);
+        $namespace = implode('\\',array_filter([Helper::appNamespace(), 'Http\Fields', $namespace]));
         $replacements = [ $namespace, $class];
         $tags = ['{{namespace}}', '{{fields}}'];
 
-        $app_path = tr_config('paths.app');
+        $app_path = \TypeRocket\Core\Config::get('paths.app');
         $service_file = $app_path . '/Http/Fields/' . str_replace("\\",'/', $name) . ".php";
         $service_path = substr($service_file, 0, -1 + -strlen(basename($service_file)) ) ;
 

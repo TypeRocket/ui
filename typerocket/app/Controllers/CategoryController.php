@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\Category;
+use TypeRocketUIPlugin\Models\Category;
 use TypeRocket\Controllers\WPTermController;
 
 class CategoryController extends WPTermController

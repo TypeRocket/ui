@@ -1,5 +1,5 @@
 <?php
-namespace TR_UI\Elements;
+namespace TypeRocketUIPlugin\Elements;
 
 use TypeRocket\Elements\BaseForm;
 

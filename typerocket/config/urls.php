@@ -1,5 +1,5 @@
 <?php
-$root = plugins_url( '/typerocket/wordpress/assets/', TR_PATH );
+$root = plugins_url( '/typerocket/wordpress/assets/', TYPEROCKET_PATH );
 
 return [
     /*

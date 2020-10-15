@@ -1,8 +1,11 @@
 <?php
-namespace TR_UI\Models;
+namespace TypeRocketUIPlugin\Models;
 
 use TypeRocket\Models\WPOption;
 
 class Option extends WPOption
 {
+    protected $fillable = [
+        \TypeRocketUIPlugin::OPTION
+    ];
 }

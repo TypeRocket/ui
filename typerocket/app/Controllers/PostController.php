@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\Post;
+use TypeRocketUIPlugin\Models\Post;
 use TypeRocket\Controllers\WPPostController;
 
 class PostController extends WPPostController

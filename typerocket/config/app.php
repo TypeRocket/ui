@@ -28,7 +28,7 @@ return [
         /*
          * Application Service Providers...
          */
-        '\TR_UI\Services\AuthService',
+        '\TypeRocketUIPlugin\Services\AuthService',
     ],
 
     /*
@@ -70,7 +70,8 @@ return [
     |
     */
     'class' => [
-        'form' => '\TR_UI\Elements\Form',
+        'form' => '\TypeRocketUIPlugin\Elements\Form',
+        'error' => '\TypeRocket\Utility\ExceptionReport',
     ],
 
     /*
@@ -106,15 +107,6 @@ return [
             'theme' => 'templates',
             'stylesheet' => 'theme/theme.css',
         ]
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reporting
-    |--------------------------------------------------------------------------
-    */
-    'report' => [
-        'error' => '\TypeRocket\Utility\ExceptionReport'
     ],
 
     /*

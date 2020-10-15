@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Http;
+namespace TypeRocketUIPlugin\Http;
 
-use TR_UI\Http\Middleware\VerifyNonce;
+use TypeRocketUIPlugin\Http\Middleware\VerifyNonce;
 use TypeRocket\Http\Middleware\AuthAdmin;
 use TypeRocket\Http\Middleware\AuthRead;
 use TypeRocket\Http\Middleware\CanManageCategories;
@@ -10,7 +10,7 @@ use TypeRocket\Http\Middleware\CanEditUsers;
 use TypeRocket\Http\Middleware\CanEditComments;
 use TypeRocket\Http\Middleware\CanEditPosts;
 
-class Kernel extends \TypeRocket\Http\Kernel
+class Kernel extends \TypeRocket\Http\HttpKernel
 {
     protected $middleware = [
         'hooks' =>

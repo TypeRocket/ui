@@ -1,5 +1,5 @@
 <?php
-namespace TR_UI\Auth;
+namespace TypeRocketUIPlugin\Auth;
 
 use TypeRocket\Auth\Policy;
 use TypeRocket\Models\AuthUser;

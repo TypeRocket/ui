@@ -1,7 +1,7 @@
 <?php
-namespace TR_UI\Controllers;
+namespace TypeRocketUIPlugin\Controllers;
 
-use TR_UI\Models\User;
+use TypeRocketUIPlugin\Models\User;
 use TypeRocket\Controllers\WPUserController;
 
 class UserController extends WPUserController

@@ -7,7 +7,6 @@ namespace Composer\Autoload;
 class ComposerStaticInitd064852c5d8fbcf78fb94f0815d2abfa
 {
     public static $files = array (
-        '18b840c6eff6cb7ed2b94475f3f1a95a' => __DIR__ . '/..' . '/typerocket/core/functions/helpers.php',
     );
 
     public static $prefixLengthsPsr4 = array (

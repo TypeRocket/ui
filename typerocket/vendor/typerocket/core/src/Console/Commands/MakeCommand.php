@@ -3,6 +3,7 @@ namespace TypeRocket\Console\Commands;
 
 use TypeRocket\Console\Command;
 use TypeRocket\Utility\File;
+use TypeRocket\Utility\Helper;
 use TypeRocket\Utility\Str;
 
 class MakeCommand extends Command
@@ -31,14 +32,14 @@ class MakeCommand extends Command
         $command = $this->getClassArgument('class');
         $name = strtolower( $this->getArgument('name') );
 
-        list($namespace, $class) = Str::splitAt('\\', $command, true);
-        $namespace = implode('\\',array_filter([TR_APP_NAMESPACE, 'Commands', $namespace]));
+        [$namespace, $class] = Str::splitAt('\\', $command, true);
+        $namespace = implode('\\',array_filter([Helper::appNamespace(), 'Commands', $namespace]));
 
         $tags = ['{{namespace}}', '{{command}}', '{{name}}'];
         $replacements = [ $namespace, $class, $name ];
         $template = __DIR__ . '/../../../templates/Command.txt';
 
-        $app_path = tr_config('paths.app');
+        $app_path = \TypeRocket\Core\Config::get('paths.app');
         $command_file = $app_path . '/Commands/' . str_replace("\\",'/', $command) . ".php";
         $command_path = substr($command_file, 0, -1 + -strlen(basename($command_file)) ) ;
 
@@ -56,7 +57,7 @@ class MakeCommand extends Command
         if( $command_file ) {
             $this->success('Command created: ' . $command );
 
-            $file = new File(TR_CORE_CONFIG_PATH . '/galaxy.php');
+            $file = new File(TYPEROCKET_CORE_CONFIG_PATH . '/galaxy.php');
 
             if($file->exists()) {
                 $eol = PHP_EOL;

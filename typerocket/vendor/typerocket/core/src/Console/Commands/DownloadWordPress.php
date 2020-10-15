@@ -4,6 +4,7 @@ namespace TypeRocket\Console\Commands;
 use Symfony\Component\Console\Input\InputOption;
 use TypeRocket\Console\Command;
 use TypeRocket\Utility\File;
+use TypeRocket\Utility\Helper;
 use TypeRocket\Utility\Str;
 
 class DownloadWordPress extends Command
@@ -20,7 +21,7 @@ class DownloadWordPress extends Command
 
     protected function config()
     {
-        $this->archiveWP = TR_PATH . '/wp.zip';
+        $this->archiveWP = TYPEROCKET_PATH . '/wp.zip';
         $this->addArgument('type', self::OPTIONAL, 'Process WordPress themes and plugins: all, core, or cleanup');
         $this->addArgument('path', self::OPTIONAL, 'The absolute path where WP will download');
         $this->addOption('build', 'b', InputOption::VALUE_REQUIRED, 'Download nightly build or specific version of WordPress' );
@@ -38,7 +39,7 @@ class DownloadWordPress extends Command
         $path = $this->getArgument('path');
         $type = $this->getArgument('type');
         $this->type = $type ?: 'all';
-        $this->path = rtrim( $path ?  $path : tr_wp_root(), '/');
+        $this->path = rtrim( $path ?  $path : Helper::wordPressRootPath(), '/');
 
         switch($this->type) {
             case 'all' :

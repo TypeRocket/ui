@@ -1,5 +1,5 @@
 <?php
-namespace TR_UI\Http\Middleware;
+namespace TypeRocketUIPlugin\Http\Middleware;
 
 use \TypeRocket\Http\Middleware\BaseVerify;
 

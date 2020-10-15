@@ -3,6 +3,7 @@ namespace TypeRocket\Console\Commands;
 
 use TypeRocket\Console\Command;
 use TypeRocket\Utility\File;
+use TypeRocket\Utility\Helper;
 use TypeRocket\Utility\Str;
 
 class MakePolicy extends Command
@@ -29,13 +30,13 @@ class MakePolicy extends Command
     {
         $name = $this->getClassArgument('name');
 
-        list($namespace, $class) = Str::splitAt('\\', $name, true);
-        $namespace = implode('\\',array_filter([TR_APP_NAMESPACE, 'Auth', $namespace]));
-        $replacements = [ $namespace, $class, tr_app_class('Models\User') ];
+        [$namespace, $class] = Str::splitAt('\\', $name, true);
+        $namespace = implode('\\',array_filter([Helper::appNamespace(), 'Auth', $namespace]));
+        $replacements = [ $namespace, $class, Helper::appNamespace('Models\User') ];
         $tags = ['{{namespace}}', '{{auth}}', '{{user}}'];
 
 
-        $app_path = tr_config('paths.app');
+        $app_path = \TypeRocket\Core\Config::get('paths.app');
         $policy_file = $app_path . '/Auth/' . str_replace("\\",'/', $name) . ".php";
         $policy_path = substr($policy_file, 0, -1 + -strlen(basename($policy_file)) ) ;
 
