@@ -676,7 +676,7 @@ class Response implements JsonSerializable
         $data = $data ?? $this->data;
 
         if( !empty( $data ) ) {
-            (new Cookie)->setTransient('tr_redirect_data', $data);
+            (new Cookie)->setTransient(Redirect::KEY_DATA, $data);
         }
 
         return $this;
@@ -712,7 +712,7 @@ class Response implements JsonSerializable
         $message = $message ?? $this->message;
 
         if(!empty($message)) {
-            (new Cookie)->setTransient('tr_redirect_message', [
+            (new Cookie)->setTransient(Redirect::KEY_MESSAGE, [
                 'message' => $message,
                 'type' => $type ?? $this->getMessageType()
             ]);
@@ -739,7 +739,7 @@ class Response implements JsonSerializable
 
         if( !empty($fields) ) {
             $send = array_diff_key($fields, array_flip($notFields));
-            (new Cookie)->setTransient('tr_old_fields', $send);
+            (new Cookie)->setTransient(Redirect::KEY_OLD, $send);
         }
 
         return $this;
@@ -769,7 +769,7 @@ class Response implements JsonSerializable
             ];
 
             if($force_transient || !(new Request)->isMarkedAjax()) {
-                (new Cookie)->setTransient('tr_admin_flash', $data);
+                (new Cookie)->setTransient(Redirect::KEY_ADMIN, $data);
             }
         }
 
@@ -896,7 +896,7 @@ class Response implements JsonSerializable
     public function finish($forceResponseArray = false)
     {
         $response = static::getFromContainer();
-        do_action('tr_response_finish', $response, $forceResponseArray);
+        do_action('typerocket_response_finish', $response, $forceResponseArray);
 
         $statusCode = $response->getStatus();
 

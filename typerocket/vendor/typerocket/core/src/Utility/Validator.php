@@ -4,7 +4,6 @@ namespace TypeRocket\Utility;
 use TypeRocket\Exceptions\RedirectError;
 use TypeRocket\Http\Request;
 use TypeRocket\Http\Response;
-use TypeRocket\Utility\Str;
 use TypeRocket\Utility\Validators\ValidatorRule;
 use TypeRocket\Utility\Validators\CallbackValidator;
 use TypeRocket\Utility\Validators\EmailValidator;
@@ -56,7 +55,7 @@ class Validator
         $this->modelClass = $modelClass;
         $this->fields = $fields ?? (new Request)->getFields();
         $this->rules = $rules;
-        $this->validatorMap = apply_filters('tr_validator_map', $this->validatorMap);
+        $this->validatorMap = apply_filters('typerocket_validator_map', $this->validatorMap);
 
         if($run) {
             $this->mapFieldsToValidation();
@@ -380,7 +379,7 @@ class Validator
             'field_name' => $field_name,
         ];
 
-        if($handle instanceof  ValidatorRule) {
+        if($handle instanceof ValidatorRule) {
             $handle->setArgs($args);
             $this->runValidatorRule($handle, $fullName, $field_name, $value);
             return;

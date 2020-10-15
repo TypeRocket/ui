@@ -40,7 +40,7 @@ class TypeRocketUIPlugin
         $this->path = plugin_dir_path(__FILE__);
         define('TYPEROCKET_AUTO_LOADER', '__return_false');
         add_filter('plugin_action_links', [$this, 'links'], 10, 2 );
-        add_filter('tr_auth_policy_check', '__return_false', 10, 2 );
+        add_filter('typerocket_auth_policy_check', '__return_false', 10, 2 );
     }
 
     public function links($actions, $plugin_file) {

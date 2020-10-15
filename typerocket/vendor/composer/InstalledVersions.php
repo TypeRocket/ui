@@ -19,7 +19,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => 'b37d008b2e9abf0ce0b816d37b06c36d18060a79',
+    'reference' => 'ef8255ee7c28ae03247307f2094ac40e625c0427',
     'name' => 'typerocket/typerocket',
   ),
   'versions' => 
@@ -84,7 +84,7 @@ private static $installed = array (
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '8359901a03dcc82b44d97dec9616ade66ee76a07',
+      'reference' => 'f6755087ab761752d429d0b4e1ada06450565dc9',
     ),
     'typerocket/typerocket' => 
     array (
@@ -93,7 +93,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => 'b37d008b2e9abf0ce0b816d37b06c36d18060a79',
+      'reference' => 'ef8255ee7c28ae03247307f2094ac40e625c0427',
     ),
   ),
 );
