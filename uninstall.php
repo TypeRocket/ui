@@ -4,5 +4,5 @@ if(!defined('WP_UNINSTALL_PLUGIN')) {
 	exit;
 }
 
-delete_option('tr_registered');
-delete_option('_tr_site_state_changed');
+delete_option('typerocket_registered');
+delete_option('_typerocket_site_state_changed');
