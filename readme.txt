@@ -1,4 +1,4 @@
-=== TypeRocket UI - WordPress Post Types Plus ===
+=== TypeRocket UI ===
 Contributors: kevindees
 Tags: custom post types, CPT, CMS, post, types, post type, taxonomy, tax, custom, content types, post types, box, meta-box, meta-boxes
 Requires at least: 5.5
