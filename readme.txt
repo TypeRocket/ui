@@ -11,12 +11,16 @@ This plugin provides a powerful user interface for creating post types, taxonomi
 
 == Description ==
 
-This plugin provides a powerful user interface for creating post types, taxonomies, and meta boxes. TypeRocket UI goes beyond the typical registration tools with advanced features like:
+Add custom post types and taxonomies to your website without code. With the TypeRocket UI plugin, you can register advanced post types and advanced taxonomies without knowing any code. Plus, TypeRocket UI goes beyond what you expect from a typical post type registration plugin by providing advanced features like:
 
-1. Setting post type placeholder text.
-2. Set the number of post type revisions.
-3. Add custom field columns to your post types table view.
-4. And much more.
+1. Post type placeholder text control.
+2. Post type revision control.
+3. Custom field column control for a post type's table view.
+4. Remove the slug prefix from your post type.
+5. Gutenberg controls.
+7. And much more.
+
+For over 8 years, [TypeRocket](https://typerocket.com/) has helped thousands of developers and designers craft powerful WordPress websites. With TypeRocket UI, you get many of the powerful features the TypeRocket developers have come to know and trust in a graphical interface.
 
 == Installation ==
 
