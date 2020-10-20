@@ -385,16 +385,16 @@
         {
             "name": "typerocket/core",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/TypeRocket/core.git",
+                "reference": "88d2cb62d8e892a0c1f8d18cd2a44ee35215605d"
+            },
             "dist": {
                 "type": "zip",
-                "url": "https://typerocket.repo.packagist.com/robojuice/dists/typerocket/core/dev-main/f6755087ab761752d429d0b4e1ada06450565dc9.zip",
-                "reference": "f6755087ab761752d429d0b4e1ada06450565dc9",
-                "mirrors": [
-                    {
-                        "url": "https://typerocket.repo.packagist.com/robojuice/dists/%package%/%version%/r%reference%.%type%",
-                        "preferred": true
-                    }
-                ]
+                "url": "https://api.github.com/repos/TypeRocket/core/zipball/88d2cb62d8e892a0c1f8d18cd2a44ee35215605d",
+                "reference": "88d2cb62d8e892a0c1f8d18cd2a44ee35215605d",
+                "shasum": ""
             },
             "require": {
                 "ext-json": "*",
@@ -411,7 +411,7 @@
                     "TypeRocket\\": "src/"
                 }
             },
-            "notification-url": "https://typerocket.repo.packagist.com/robojuice/downloads/",
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "GPL-3.0-or-later"
             ],
@@ -431,10 +431,10 @@
             ],
             "support": {
                 "docs": "https://typerocket.com/docs/v5/",
-                "source": "https://github.com/TypeRocket/core/tree/v5.0.2",
-                "issues": "https://github.com/TypeRocket/core/issues"
+                "issues": "https://github.com/TypeRocket/core/issues",
+                "source": "https://github.com/TypeRocket/core/tree/v5.0.3"
             },
-            "time": "2020-10-15T18:59:31+00:00"
+            "time": "2020-10-20T01:01:39+00:00"
         }
     ],
     "packages-dev": [

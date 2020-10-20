@@ -3,6 +3,12 @@
 if( php_sapi_name() !== 'cli' )
     die("Meant to be run from command line" . PHP_EOL);
 
+define('TYPEROCKET_APP_NAMESPACE', 'TypeRocketUIPlugin');
+define('TYPEROCKET_AUTOLOAD_APP', [
+    'prefix' => TYPEROCKET_APP_NAMESPACE . '\\',
+    'folder' => __DIR__ . '/app/',
+]);
+
 define('WPMU_PLUGIN_URL', '/mu-plugins');
 define('TYPEROCKET_GALAXY', true);
 
