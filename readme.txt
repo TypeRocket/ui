@@ -29,6 +29,9 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 == Screenshots ==
 
 1. Registration UI.
+2. Post type admin columns.
+3. Remove post type slug prefix.
+4. Override an existing post type.
 
 == Changelog ==
 
