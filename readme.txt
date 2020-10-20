@@ -32,6 +32,12 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 
 == Changelog ==
 
-= 5.0 =
+= 5.0.1 =
+
+* Require plural names.
+* Allow overriding of existing post types like post and page.
+* Bug fixes.
+
+= 5.0.0 =
 
 * Custom Post Type, Taxonomies, and Meta Box UI
