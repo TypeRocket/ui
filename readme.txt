@@ -35,6 +35,10 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 
 == Changelog ==
 
+= 5.0.3 =
+
+* Add help text.
+
 = 5.0.2 =
 
 * Fix deploy script.
