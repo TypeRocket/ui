@@ -19,14 +19,6 @@ npm-debug.log
 yarn-error.log
 /galaxy-config.php
 
-# WordPress
-/wordpress/*.*
-/wordpress/.maintenance
-/wordpress/wp-admin
-/wordpress/wp-includes
-/wordpress/wp-content/*
-!/wordpress/wp-content/mu-plugins/
-
 # Source Maps
 *.css.map
 *.js.map
