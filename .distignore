@@ -4,15 +4,9 @@
 /.wordpress-org
 
 .distignore
-.eslintrc.js
 .gitignore
 .gitattributes
 Makefile
 package.json
 package-lock.json
 readme.md
-.idea
-.settings
-.project
-.build
-.vscode

@@ -1,5 +1,3 @@
-# Your Files
-
 # Vendor
 node_modules
 package-lock.json
@@ -11,10 +9,6 @@ vendor/typerocket/core/assets
 vendor/typerocket/core/templates
 
 # Environment
-.env
-/wp-config.php
-/sql/run/*
-.phpunit.result.cache
 npm-debug.log
 yarn-error.log
 /galaxy-config.php
