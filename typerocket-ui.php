@@ -22,25 +22,27 @@ class TypeRocketUIPlugin
 
     public function __construct()
     {
-        if(defined('TYPEROCKET_PLUGIN_INSTALL') || defined('TYPEROCKET_PATH')) {
-            add_filter('plugin_action_links',function ($actions, $plugin_file) {
-                if( $found = strpos(__FILE__, $plugin_file) ) {
-                    $actions['settings'] = '<span style="color: red">Inactive Install</span>';
-                }
+        add_action('plugins_loaded', function() {
+            if(defined('TYPEROCKET_PLUGIN_INSTALL') || defined('TYPEROCKET_PATH')) {
+                add_filter('plugin_action_links',function ($actions, $plugin_file) {
+                    if( $found = strpos(__FILE__, $plugin_file) ) {
+                        $actions['settings'] = '<span style="color: red">Inactive Install</span>';
+                    }
 
-                return $actions;
-            }, 10, 2 );
+                    return $actions;
+                }, 10, 2 );
 
-            return;
-        }
+                return;
+            }
 
-        $this->loadConfig();
-        require 'typerocket/init.php';
+            $this->loadConfig();
+            require 'typerocket/init.php';
 
-        $this->path = plugin_dir_path(__FILE__);
-        define('TYPEROCKET_AUTO_LOADER', '__return_false');
-        add_filter('plugin_action_links', [$this, 'links'], 10, 2 );
-        add_filter('typerocket_auth_policy_check', '__return_false', 10, 2 );
+            $this->path = plugin_dir_path(__FILE__);
+            define('TYPEROCKET_AUTO_LOADER', '__return_false');
+            add_filter('plugin_action_links', [$this, 'links'], 10, 2 );
+            add_filter('typerocket_auth_policy_check', '__return_false', 10, 2 );
+        }, 20);
     }
 
     public function links($actions, $plugin_file) {
