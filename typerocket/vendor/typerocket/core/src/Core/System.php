@@ -35,6 +35,8 @@ class System
     {
         $self = $this;
 
+        $this->loadRuntimeCache();
+
         /**
          * Maybe Load TypeRocket Pro
          */
@@ -42,7 +44,6 @@ class System
             (new Resolver())->resolve(static::ADVANCED);
         }
 
-        $this->loadRuntimeCache();
         $this->loadExtensions();
         $this->initHooks();
         $this->loadResponders();
@@ -70,10 +71,10 @@ class System
         | the typerocket_loaded hook to access TypeRocket from your WP plugins.
         |
         */
-        add_action('after_setup_theme', function () {
+        add_action('after_setup_theme', function() {
             do_action('typerocket_loaded');
             Registry::initHooks();
-        });
+        }, 20);
 
         /*
         |--------------------------------------------------------------------------

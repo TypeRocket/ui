@@ -4,7 +4,7 @@ Tags: custom post types, CPT, CMS, post, types, post type, taxonomy, tax, custom
 Requires at least: 5.5
 Requires PHP: 7.2.5
 Tested up to: 5.5.1
-Stable Tag: 5.0.3
+Stable Tag: 5.0.4
 License: GPLv2 or later
 
 This plugin provides a powerful user interface for creating post types, taxonomies, and meta boxes.
@@ -34,6 +34,10 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 4. Override an existing post type.
 
 == Changelog ==
+
+= 5.0.4 =
+
+* Add open and pro compatibility.
 
 = 5.0.3 =
 
