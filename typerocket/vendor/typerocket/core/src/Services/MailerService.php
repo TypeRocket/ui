@@ -7,22 +7,23 @@ namespace TypeRocket\Services
     class MailerService extends Service
     {
         protected $driver;
-        const ALIAS = 'mail';
+        public const ALIAS = 'mail';
 
         /**
          * @return $this|Service
+         * @throws \Exception
          */
         public function register() : Service
         {
             $default = Config::get('mail.default');
 
-            if($default) {
+            if(!$default) {
                 throw new \Exception('mail.php config is missing.');
             }
 
             $driver = Config::get("mail.drivers.{$default}.driver");
 
-            $this->driver = new $driver;
+            $this->driver( apply_filters('typerocket_mailer_service_driver', new $driver ) );
 
             return $this;
         }

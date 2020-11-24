@@ -3,7 +3,7 @@ Contributors: kevindees
 Tags: custom post types, CPT, CMS, post, types, post type, taxonomy, tax, custom, content types, post types, box, meta-box, meta-boxes
 Requires at least: 5.5
 Requires PHP: 7.2.5
-Tested up to: 5.5.1
+Tested up to: 5.6
 Stable Tag: 5.0.4
 License: GPLv2 or later
 
@@ -34,6 +34,10 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 4. Override an existing post type.
 
 == Changelog ==
+
+= 5.0.5 =
+
+* Add WordPress 5.6 support.
 
 = 5.0.4 =
 

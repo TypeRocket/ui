@@ -1,25 +1,33 @@
 <?php
 namespace TypeRocket\Utility;
 
-use TypeRocket\Utility\Helper;
-
 class File
 {
     public $existing = false;
+    public $wrote;
     public $file;
+    public $isDir;
+    public $dirPermissions;
+    public const DIR_PERMISSIONS = 0755;
 
     /**
      * File constructor.
      *
      * @param string $file
+     * @param null|int $folder_permissions
      */
-    public function __construct( $file )
+    public function __construct( $file, $folder_permissions = null )
     {
         $this->file = $file;
+        $this->dirPermissions = $folder_permissions ?? static::DIR_PERMISSIONS;
+        $this->isDir = is_dir($this->file);
 
         if( file_exists( $file ) ) {
             $this->existing = true;
-            $this->file = realpath($file);
+
+            if($this->exists()) {
+                $this->file = realpath($file);
+            }
         }
     }
 
@@ -34,6 +42,14 @@ class File
     }
 
     /**
+     * @return null|string
+     */
+    public function file()
+    {
+        return $this->file;
+    }
+
+    /**
      * File Exists
      *
      * @return bool
@@ -41,6 +57,14 @@ class File
     public function exists()
     {
         return $this->existing;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function wrote()
+    {
+        return $this->wrote;
     }
 
     /**
@@ -52,22 +76,41 @@ class File
      */
     public function create($content = null)
     {
-        if(!$this->existing) {
-            fclose(fopen($this->file, 'w'));
-        }
+        $this->tryToMakeFileWithDir();
 
         if($content) {
-            $name = basename($this->file);
-            $dir = substr($this->file, 0, -strlen($name));
-
-            if (!is_dir($dir)) {
-                mkdir($dir);
-            }
-
-            $this->existing = (bool) file_put_contents($this->file, $content);
+            $this->wrote = (bool) file_put_contents($this->file, $content);
         }
 
         return $this;
+    }
+
+    /**
+     * @param string $destination
+     */
+    protected function tryToMakeDir($destination)
+    {
+        if(!is_dir($destination)) {
+            $file_name = basename($destination);
+            $destination = substr($destination, 0, -strlen($file_name));
+        }
+
+        if (!is_dir($destination)) {
+            mkdir($destination, $this->dirPermissions, true);
+        }
+    }
+
+    /**
+     * @param string|null $destination
+     */
+    protected function tryToMakeFileWithDir($destination = null)
+    {
+        if(!$this->existing) {
+            $destination = $destination ?? $this->file;
+            $this->tryToMakeDir($destination);
+            fclose(fopen($destination, 'w'));
+            $this->existing = true;
+        }
     }
 
     /**
@@ -79,15 +122,11 @@ class File
      */
     public function append($content = null)
     {
-        if(!$this->existing) {
-            fclose(fopen($this->file, 'w'));
-        }
+        $this->tryToMakeFileWithDir();
 
         if($content) {
-            file_put_contents($this->file, $content, FILE_APPEND);
+            $this->wrote = (bool) file_put_contents($this->file, $content, FILE_APPEND);
         }
-
-        $this->existing = true;
 
         return $this;
     }
@@ -210,7 +249,7 @@ class File
             }
 
             if($found) {
-                file_put_contents($this->file, $fileContent);
+                $this->wrote = (bool) file_put_contents($this->file, $fileContent);
                 return true;
             } else {
                 return false;
@@ -235,7 +274,7 @@ class File
 
         if( ! file_exists($new) ) {
             $file = fopen($new, "w") or die("Unable to open file!");
-            fwrite($file, $newContent);
+            $this->wrote = (bool) fwrite($file, $newContent);
             fclose($file);
             return realpath( $new );
         } else {
@@ -290,15 +329,19 @@ class File
      *
      * @param null|string $path
      * @param bool $removeSelf
-     * @param bool $root
+     * @param string|null $root
      *
      * @return bool
      * @throws \Throwable
      */
     public function removeRecursiveDirectory($path = null, $removeSelf = true, $root = null )
     {
-        $path = realpath($path ? $path : $this->file);
+        $path = $path ? realpath($path) : $this->file;
         $project_root = Helper::wordPressRootPath();
+
+        if( !file_exists($path) ) {
+            throw new \Exception('Nothing deleted. ' . $path . ' does not exist.');
+        }
 
         if(!$root) {
             if( !Str::starts($project_root, TYPEROCKET_PATH) ) {
@@ -306,14 +349,10 @@ class File
             }
         }
 
-        $root = rtrim($root ?? $project_root, '/');
+        $root = rtrim($root ?? $project_root, DIRECTORY_SEPARATOR);
 
-        if( !Str::starts($root, $path) ) {
+        if( !empty($root) && !Str::starts($root, $path) ) {
             throw new \Exception('Nothing deleted. ' . $path . ' file must be within your project scope or ' . $root);
-        }
-
-        if( !file_exists($path) ) {
-            throw new \Exception('Nothing deleted.' . $path . ' does not exist.');
         }
 
         $dir = rtrim($path);
@@ -371,7 +410,7 @@ class File
         $path = $this->file;
 
         if($relative) {
-            $destination = TYPEROCKET_PATH . '/' . ltrim($destination, DIRECTORY_SEPARATOR);
+            $destination = TYPEROCKET_PATH . DIRECTORY_SEPARATOR . ltrim($destination, DIRECTORY_SEPARATOR);
         }
 
         if(!file_exists($destination) && is_dir($path)) {
@@ -379,18 +418,20 @@ class File
                 echo 'Make dir: ' . $destination . PHP_EOL;
             }
 
-            mkdir($destination, 0755);
+            $this->tryToMakeDir($destination);
         }
 
         if(!is_dir($path) && is_file($path)) {
             $dont_replace_it = file_exists($destination) && !$replace;
 
             if(!$dont_replace_it) {
+                $this->tryToMakeDir($destination);
+
                 if($verbose) {
                     echo 'Copy file: ' . $destination . PHP_EOL;
                 }
 
-                copy($path, $destination);
+                $this->wrote = copy($path, $destination);
             }
             elseif($verbose) {
                 echo 'Kept existing file: ' . $destination . PHP_EOL;
@@ -430,16 +471,16 @@ class File
                 mkdir($file);
             }
             elseif(!$skip && !$item->isDir() ) {
-
-
                 $dont_replace_it = file_exists($file) && !$replace;
 
                 if(!$dont_replace_it) {
+                    $this->tryToMakeDir($destination);
+
                     if($verbose) {
                         echo 'Copy file: ' . $file . PHP_EOL;
                     }
 
-                    copy($item, $file);
+                    $this->wrote = copy($item, $file);
                 }
                 elseif($verbose) {
                     echo 'Kept existing file: ' . $destination . PHP_EOL;
@@ -451,6 +492,14 @@ class File
         if($delete) {
             $this->removeRecursiveDirectory();
         }
+    }
+
+    /**
+     * @return false|string
+     */
+    public function __toString()
+    {
+        return $this->file;
     }
 
 }

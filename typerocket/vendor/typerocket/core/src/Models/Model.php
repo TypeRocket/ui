@@ -41,6 +41,7 @@ class Model implements Formable, JsonSerializable
     protected $resource = null;
     protected $routeResource = null;
     protected $table = null;
+    protected $composer;
     protected $errors = null;
     /** @var mixed|Query  */
     protected $query;
@@ -2232,6 +2233,15 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
+     * @return mixed|\TypeRocket\Template\Composer
+     */
+    public function composer()
+    {
+        $composer = $this->composer;
+        return new $composer($this);
+    }
+
+    /**
      * Get Model Clone
      *
      * @return $this
@@ -2276,6 +2286,21 @@ class Model implements Formable, JsonSerializable
     public function __toString()
     {
         return $this->toJson();
+    }
+
+    /**
+     * @param mixed $value
+     * @param callable $function
+     *
+     * @return $this
+     */
+    public function when($value, callable $function)
+    {
+        if(!empty($value)) {
+            $function($this, $value);
+        }
+
+        return $this;
     }
 
     /**

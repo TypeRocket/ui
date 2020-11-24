@@ -249,7 +249,7 @@ class Request
      */
     public function getHeader($header)
     {
-        $header = preg_replace( '/[^A-Z0-9_]/', '', strtoupper($header));
+        $header = preg_replace( '/[^A-Z0-9_]/', '', strtoupper(str_replace('-', '_',$header)));
 
         return $_SERVER['HTTP_' . $header] ?? null;
     }
@@ -470,6 +470,21 @@ class Request
     public function getCurrentUser()
     {
         return Container::resolveAlias(AuthUser::ALIAS);
+    }
+
+    /**
+     * Check Honey Pot
+     *
+     * @param array|null $fields
+     *
+     * @return bool|array
+     */
+    public function checkHoneypot(?array $fields = null)
+    {
+        $honey = $fields ?? $_REQUEST['__hny'] ?? $this->input('__hny', []);
+        $honey_taken = array_filter($honey);
+
+        return apply_filters('typerocket_honeypot_check', empty($honey_taken), $honey);
     }
 
     /**

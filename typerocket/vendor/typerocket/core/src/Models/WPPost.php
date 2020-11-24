@@ -5,16 +5,49 @@ use TypeRocket\Database\Query;
 use TypeRocket\Exceptions\ModelException;
 use TypeRocket\Models\Meta\WPPostMeta;
 use TypeRocket\Models\Traits\MetaData;
+use TypeRocket\Template\Composer;
 use WP_Post;
 
+/**
+ * Class WPPost
+ *
+ * @property bool $is_published;
+ *
+ * @property string $post_status;
+ * @property int $post_author;
+ * @property string $post_date;
+ * @property string $post_date_gmt;
+ * @property string $post_content;
+ * @property string $post_content_filtered;
+ * @property string $post_title;
+ * @property string $comment_status;
+ * @property string $ping_status;
+ * @property string $post_name;
+ * @property string $to_ping;
+ * @property string $pinged;
+ * @property string $post_modified;
+ * @property string $post_modified_gmt;
+ * @property int $post_parent;
+ * @property string $guid;
+ * @property int $menu_order;
+ * @property string $post_type;
+ * @property string $post_mime_type;
+ * @property int $comment_count;
+ * @property string $post_password;
+ * @property int $ID;
+ *
+ * @package TypeRocket\Models
+ */
 class WPPost extends Model
 {
     use MetaData;
 
     protected $idColumn = 'ID';
     protected $resource = 'posts';
+    public const POST_TYPE = null;
     protected $postType = null;
     protected $wpPost = null;
+    protected $composer = 'TypeRocket\Template\PostTypeModelComposer';
     protected $fieldOptions = [
         'key' => 'post_title',
         'value' => 'ID',
@@ -51,6 +84,10 @@ class WPPost extends Model
         'id'
     ];
 
+    protected $private = [
+        'post_password'
+    ];
+
     /**
      * WPPost constructor.
      *
@@ -60,8 +97,22 @@ class WPPost extends Model
      */
     public function __construct($postType = null)
     {
-        if($postType) { $this->postType = $postType; }
+        $this->setPostType($postType ?? static::POST_TYPE);
         parent::__construct();
+    }
+
+    /**
+     * @param null|string $postType
+     * @param bool $init
+     *
+     * @return $this
+     */
+    protected function setPostType($postType = null, $init = false)
+    {
+        if($postType) { $this->postType = $postType; }
+        if($init) { $this->initQuery($this->query); }
+
+        return $this;
     }
 
     /**
@@ -95,8 +146,8 @@ class WPPost extends Model
      */
     protected function initQuery( Query $query )
     {
-        if($this->postType) {
-            $query->where('post_type', $this->getPostType());
+        if($pt = $this->getPostType()) {
+            $query->where('post_type', $pt);
         }
 
         return $query;
@@ -153,7 +204,7 @@ class WPPost extends Model
         $post = get_post($post);
 
         if($post instanceof WP_Post) {
-            $this->postType = $post->post_type;
+            $this->setPostType($post->post_type);
             $this->wpPost = $post;
 
             $this->castProperties( get_object_vars( $post ) );
@@ -203,6 +254,16 @@ class WPPost extends Model
     public function permalink()
     {
         return get_permalink($this->wpPost);
+    }
+
+    /**
+     * @param mixed|null $value
+     *
+     * @return bool
+     */
+    public function getIsPublishedProperty($value = null)
+    {
+        return (bool) ( $value ?? $this->post_status == 'publish' );
     }
 
     /**
@@ -325,6 +386,14 @@ class WPPost extends Model
     }
 
     /**
+     * @return Composer|\TypeRocket\Template\PostTypeModelComposer
+     */
+    public function composer()
+    {
+        return parent::composer();
+    }
+
+    /**
      * Find by ID and Remove Where
      *
      * @param string $id
@@ -359,8 +428,8 @@ class WPPost extends Model
             $builtin = $this->slashBuiltinFields($builtin);
             remove_action('save_post', 'TypeRocket\Http\Responders\Hook::posts');
 
-            if(!empty($this->postType)) {
-                $builtin['post_type'] = $this->postType;
+            if(!empty($this->getPostType())) {
+                $builtin['post_type'] = $this->getPostType();
             }
 
             if( empty($builtin['post_title']) ) {

@@ -42,7 +42,6 @@ class Command extends SymfonyCommand
      */
     protected function configure()
     {
-
         $signature = explode(' ', $this->command[0], 2);
         $name = array_shift($signature);
 
@@ -179,29 +178,49 @@ class Command extends SymfonyCommand
     /**
      * Confirm
      *
+     * Die is not true.
+     *
      * https://symfony.com/doc/3.4/components/console/helpers/questionhelper.html
      *
      * @param string|null $question        The question to ask to the user
      * @param bool   $default         The default answer to return, true or false
      * @param string $trueAnswerRegex A regex to match the "yes" answer
      */
-    protected function confirm($question = null, $default = false, $trueAnswerRegex = '/^y/i') {
-        $question = new ConfirmationQuestion(($question ?? 'Continue with this action? (y|n)') . ' ', $default, $trueAnswerRegex);
-
-        if (!$this->getHelper('question')->ask($this->input, $this->output, $question)) {
+    protected function confirm($question = null, $default = false, $trueAnswerRegex = '/^y/i')
+    {
+        if (!$this->continue(...func_get_args())) {
             die();
         }
+    }
+
+    /**
+     * Continue
+     *
+     * https://symfony.com/doc/3.4/components/console/helpers/questionhelper.html
+     *
+     * @param string|null $question The question to ask to the user
+     * @param bool $default The default answer to return, true or false
+     * @param string $trueAnswerRegex A regex to match the "yes" answer
+     *
+     * @return bool
+     */
+    protected function continue($question = null, $default = false, $trueAnswerRegex = '/^y/i')
+    {
+        $question = new ConfirmationQuestion(($question ?? 'Continue with this action? (y|n)') . ' ', $default, $trueAnswerRegex);
+        return $this->getHelper('question')->ask($this->input, $this->output, $question);
     }
 
     /**
      * Get Argument
      *
      * @param string $name
+     * @param null|string $default
      *
      * @return mixed
      */
-    protected function getArgument( $name ) {
-        return $this->input->getArgument($name);
+    protected function getArgument( $name, ?string $default = null )
+    {
+        return $this->input->getArgument($name) ?? $default;
     }
 
     /**
@@ -210,7 +229,8 @@ class Command extends SymfonyCommand
      *
      * @throws \Exception
      */
-    protected function runCommand($name, array $args = []) {
+    protected function runCommand($name, array $args = [])
+    {
         $command = $this->getApplication()->find($name);
         $input = new ArrayInput( $args );
         $command->run($input, $this->output);
@@ -220,11 +240,13 @@ class Command extends SymfonyCommand
      * Get Option
      *
      * @param string $name
+     * @param string|null $default
      *
      * @return mixed
      */
-    protected function getOption( $name ) {
-        return $this->input->getOption($name);
+    protected function getOption( $name, ?string $default = null )
+    {
+        return $this->input->getOption($name) ?? $default;
     }
 
     /**
@@ -234,7 +256,8 @@ class Command extends SymfonyCommand
      *
      * @return mixed|string|string[]|null
      */
-    public function getClassArgument($arg) {
+    public function getClassArgument($arg)
+    {
         $arg = $this->getArgument($arg);
         $arg = str_replace("/",'\\', $arg);
         $arg = preg_replace('/(\\\\+)/m','\\', $arg);
