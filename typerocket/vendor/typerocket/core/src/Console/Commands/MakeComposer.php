@@ -45,7 +45,7 @@ class MakeComposer extends Command
         [$namespace, $class] = Str::splitAt('\\', $class, true);
 
         $tags = ['{{namespace}}', '{{class}}'];
-        $namespace = implode('\\',array_filter([Helper::appNamespace(), 'Composers', $namespace]));
+        $namespace = implode('\\',array_filter([$this->getGalaxyMakeNamespace(), 'Composers', $namespace]));
         $replacements = [ $namespace, $class ];
 
         switch ($type) {
@@ -68,7 +68,7 @@ class MakeComposer extends Command
         $composer_file = File::new($template)->copyTemplateFile( $composer_file, $tags, $replacements );
 
         if( $composer_file ) {
-            $this->success('Composer ' . $class . ' created at ' . $composer_file . '</>');
+            $this->success('Composer ' . $class . ' created at ' . $composer_file);
         } else {
             $this->error('Composer ' . $class . ' already exists.');
         }

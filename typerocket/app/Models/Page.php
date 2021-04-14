@@ -5,6 +5,6 @@ use TypeRocket\Models\WPPost;
 
 class Page extends WPPost
 {
-    protected $postType = 'page';
+    public const POST_TYPE = 'page';
     protected $closed = true;
 }

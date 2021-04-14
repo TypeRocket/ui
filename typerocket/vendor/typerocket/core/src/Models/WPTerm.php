@@ -158,7 +158,7 @@ class WPTerm extends Model
      */
     public function permalink()
     {
-        return get_term_link($this->wpTerm, $this->getTaxonomy());
+        return get_term_link($this->wpTerm(), $this->getTaxonomy());
     }
 
     /**
@@ -382,7 +382,9 @@ class WPTerm extends Model
                 $current_value = get_term_meta( $id, $key, true );
 
                 if (( isset( $value ) && $value !== "" ) && $value !== $current_value) :
-                    update_term_meta( $id, $key, wp_slash($value) );
+                    $value = wp_slash($value);
+                    update_term_meta( $id, $key, $value );
+                    do_action('typerocket_after_save_meta_term', $id, $key, $value, $current_value, $this);
                 elseif ( ! isset( $value ) || $value === "" && ( isset( $current_value ) || $current_value === "" )) :
                     delete_term_meta( $id, $key );
                 endif;

@@ -5,6 +5,6 @@ use TypeRocket\Models\WPTerm;
 
 class Category extends WPTerm
 {
-    protected $taxonomy = 'category';
+    public const TAXONOMY = 'category';
     protected $closed = true;
 }

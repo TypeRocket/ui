@@ -17,8 +17,15 @@ class Data
     public static function walk($dots, $array, $default = null)
     {
         $traverse = is_array($dots) ? $dots : explode('.', $dots);
-        foreach ($traverse as $step) {
-            $v = is_object($array) ? ($array->$step ?? null) : ($array[$step] ?? null);
+        foreach ($traverse as $i => $step) {
+            unset($traverse[$i]);
+            if($step === '*' && is_array($array)) {
+                return array_map(function($item) use ($traverse, $default) {
+                    return static::walk($traverse, $item, $default);
+                }, $array);
+            } else {
+                $v = is_object($array) ? ($array->$step ?? null) : ($array[$step] ?? null);
+            }
 
             if ( !isset($v) && ! is_string($array) ) {
                 return $default;
@@ -97,6 +104,8 @@ class Data
                 $value = unserialize($value);
             } elseif(!is_string($value)) {
                 $value = (array) $value;
+            } elseif (trim($value) == '""') {
+                $value = null;
             }
 
             return $value;
@@ -114,6 +123,8 @@ class Data
                 $value = (object) $value;
             } elseif (is_array($value)) {
                 $value = (object) $value;
+            } elseif (trim($value) == '""') {
+                $value = null;
             }
 
             return $value;
@@ -140,7 +151,9 @@ class Data
             return false;
         }
 
-        if (trim($args[0]) === '') {
+        $s = trim($args[0]);
+
+        if($s === '' || $s === '""') {
             return false;
         }
 
