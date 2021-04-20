@@ -29,7 +29,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '27af895c803fb7f75c774bd2745a0eabb5d09eb6',
+    'reference' => '6492bbecbfa29f15925d86d2491bb5f6c469d297',
     'name' => 'typerocket/typerocket',
   ),
   'versions' => 
@@ -115,12 +115,12 @@ private static $installed = array (
     ),
     'symfony/service-contracts' => 
     array (
-      'pretty_version' => 'v2.2.0',
-      'version' => '2.2.0.0',
+      'pretty_version' => 'v2.4.0',
+      'version' => '2.4.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'd15da7ba4957ffb8f1747218be9e1a121fd298a1',
+      'reference' => 'f040a30e04b57fbcc9c6cbcf4dbaa96bd318b9bb',
     ),
     'symfony/string' => 
     array (
@@ -139,7 +139,7 @@ private static $installed = array (
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '5def3d64768e44c54c0e0213220d520394cb00ec',
+      'reference' => 'f657aa60032295d54de55d95d5bccf2c29d69c48',
     ),
     'typerocket/typerocket' => 
     array (
@@ -148,7 +148,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '27af895c803fb7f75c774bd2745a0eabb5d09eb6',
+      'reference' => '6492bbecbfa29f15925d86d2491bb5f6c469d297',
     ),
   ),
 );
