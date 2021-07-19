@@ -424,6 +424,8 @@ class WPPost extends Model
         $builtin = $this->getFilteredBuiltinFields($fields);
         $new_post = null;
 
+        do_action('typerocket_model_create', $this, $fields);
+
         if ( ! empty( $builtin )) {
             $builtin = $this->slashBuiltinFields($builtin);
             remove_action('save_post', 'TypeRocket\Http\Responders\Hook::posts');
@@ -450,6 +452,8 @@ class WPPost extends Model
 
         $this->saveMeta( $fields );
 
+        do_action('typerocket_model_after_create', $this, $fields, $new_post);
+
         return $new_post;
     }
 
@@ -467,16 +471,19 @@ class WPPost extends Model
         if( $id != null && ! wp_is_post_revision( $id ) ) {
             $fields = $this->provisionFields( $fields );
             $builtin = $this->getFilteredBuiltinFields($fields);
+            $result = null;
+
+            do_action('typerocket_model_update', $this, $fields);
 
             if ( ! empty( $builtin ) ) {
                 $builtin = $this->slashBuiltinFields($builtin);
                 remove_action('save_post', 'TypeRocket\Http\Responders\Hook::posts');
                 $builtin['ID'] = $id;
                 $builtin['post_type'] = $this->properties['post_type'];
-                $updated = wp_update_post( $builtin );
+                $result = wp_update_post( $builtin );
                 add_action('save_post', 'TypeRocket\Http\Responders\Hook::posts');
 
-                if ( $updated instanceof \WP_Error || $updated === 0 ) {
+                if ( $result instanceof \WP_Error || $result === 0 ) {
                     $error = 'WPPost not updated: post_name (slug), post_title and post_content are required';
                     throw new ModelException( $error );
                 } else {
@@ -486,6 +493,8 @@ class WPPost extends Model
             }
 
             $this->saveMeta( $fields );
+
+            do_action('typerocket_model_after_update', $this, $fields, $result);
 
         } else {
             $this->errors = ['No item to update'];
@@ -508,11 +517,19 @@ class WPPost extends Model
             $ids = $this->getID();
         }
 
+        if(is_array($ids)) {
+            throw new ModelException(static::class . ' not deleted: bulk deleting not supported due to WordPress performance issues.');
+        }
+
+        do_action('typerocket_model_delete', $this, $ids);
+
         $delete = wp_delete_post($ids);
 
-        if ( $delete instanceof \WP_Error ) {
-            throw new ModelException('WPPost not deleted: ' . $delete->get_error_message());
+        if ( !$delete ) {
+            throw new ModelException('WPPost not deleted');
         }
+
+        do_action('typerocket_model_after_delete', $this, $ids, $delete);
 
         return $this;
     }
@@ -531,11 +548,15 @@ class WPPost extends Model
             $ids = $this->getID();
         }
 
+        do_action('typerocket_model_delete', $this, $ids);
+
         $delete = wp_delete_post($ids, true);
 
-        if ( $delete instanceof \WP_Error ) {
-            throw new ModelException('WPPost not deleted: ' . $delete->get_error_message());
+        if ( !$delete ) {
+            throw new ModelException('WPPost not deleted');
         }
+
+        do_action('typerocket_model_after_delete', $this, $ids, $delete);
 
         return $this;
     }
@@ -615,7 +636,6 @@ class WPPost extends Model
      */
     public function slashBuiltinFields( $builtin )
     {
-
         $fields = [
             'post_content',
             'post_excerpt',

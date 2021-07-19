@@ -33,22 +33,30 @@ class WPUserController extends Controller
 
         try {
             if(!$id) {
-                throw new ModelException('ID not found.');
+                throw new ModelException(__('ID not found.', 'typrocket-domain'));
             }
 
             $model->wpUser($id);
 
+            if(!$this->onValidate('save', 'update', $model)) {
+                throw new ModelException(__('Validation for update failed.', 'typrocket-domain'));
+            }
+
             do_action('typerocket_controller_update', $this, $model, $authUser);
 
             if(!$model->can('update', $authUser)) {
-                throw new ModelException('Policy does not give the current user access to write.');
+                throw new ModelException(__('Policy does not give the current user access to update custom fields.', 'typrocket-domain'));
             }
 
             $model->update( $this->getFields() );
             $this->onAction('save', 'update', $model);
+
+            do_action('typerocket_controller_after_update', $this, $model, $authUser);
+
             $response->flashNext( 'User updated', 'success' );
             $response->setData('resourceId', $model->getID());
         } catch ( ModelException $e ) {
+            $response->allowFlash();
             $response->flashNext($e->getMessage(), 'error' );
             $response->setError( 'model', $e->getMessage() );
             $this->onAction('error', 'update', $e, $model);
@@ -75,8 +83,12 @@ class WPUserController extends Controller
         $model = new $this->modelClass;
 
         try {
+            if(!$this->onValidate('save', 'create', $model)) {
+                throw new ModelException(__('Validation for create failed.', 'typrocket-domain'));
+            }
+
             if(!$model->can('create', $authUser)) {
-                throw new ModelException('Policy does not give the current user access to write.');
+                throw new ModelException(__('Policy does not give the current user access to create.', 'typrocket-domain'));
             }
 
             $new = $model->create( $this->getFields() );
@@ -115,13 +127,13 @@ class WPUserController extends Controller
 
         try {
             if(!$id) {
-                throw new ModelException('ID not found.');
+                throw new ModelException(__('ID not found.', 'typrocket-domain'));
             }
 
             $model->wpUser( $id );
 
             if(!$model->can('destroy', $authUser)) {
-                throw new ModelException('Policy does not give the current user access to write.');
+                throw new ModelException(__('Policy does not give the current user access to destroy.', 'typrocket-domain'));
             }
 
             $model->delete();

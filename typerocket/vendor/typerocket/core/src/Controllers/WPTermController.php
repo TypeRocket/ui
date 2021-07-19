@@ -32,19 +32,26 @@ class WPTermController extends Controller
 
         try {
             if(!$id) {
-                throw new ModelException('ID not found.');
+                throw new ModelException(__('ID not found.', 'typrocket-domain'));
             }
 
             $model->wpTerm($id);
 
+            if(!$this->onValidate('save', 'update', $model)) {
+                throw new ModelException(__('Validation for update failed.', 'typrocket-domain'));
+            }
+
             do_action('typerocket_controller_update', $this, $model, $user);
 
             if(!$model->can('update', $user)) {
-                throw new ModelException('Policy does not give the current user access to write.');
+                throw new ModelException(__('Policy does not give the current user access to update custom fields.', 'typrocket-domain'));
             }
 
             $model->update( $this->getFields() );
             $this->onAction('save', 'update', $model);
+
+            do_action('typerocket_controller_after_update', $this, $model, $user);
+
             $response->flashNext($model->getRouteResource() . ' updated', 'success' );
             $response->setData('resourceId', $id );
         } catch ( ModelException $e ) {
@@ -74,8 +81,12 @@ class WPTermController extends Controller
         $model = (new $this->modelClass);
 
         try {
+            if(!$this->onValidate('save', 'create', $model)) {
+                throw new ModelException(__('Validation for create failed.', 'typrocket-domain'));
+            }
+
             if(!$model->can('create', $user)) {
-                throw new ModelException('Policy does not give the current user access to write.');
+                throw new ModelException(__('Policy does not give the current user access to create.', 'typrocket-domain'));
             }
 
             $new = $model->create( $this->getFields() );
@@ -114,13 +125,13 @@ class WPTermController extends Controller
 
         try {
             if(!$id) {
-                throw new ModelException('ID not found.');
+                throw new ModelException(__('ID not found.', 'typrocket-domain'));
             }
 
             $model->wpTerm( $id );
 
             if(!$model->can('destroy', $user)) {
-                throw new ModelException('Policy does not give the current user access to write.');
+                throw new ModelException(__('Policy does not give the current user access to destroy.', 'typrocket-domain'));
             }
 
             $model->delete();

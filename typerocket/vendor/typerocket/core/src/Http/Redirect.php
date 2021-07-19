@@ -21,8 +21,8 @@ class Redirect
      *
      * @return Redirect
      */
-    public function withData($data) {
-
+    public function withData($data)
+    {
         if( !empty($data) ) {
             (new Cookie)->setTransient(static::KEY_DATA, $data);
         }
@@ -33,11 +33,12 @@ class Redirect
     /**
      * With with data
      *
-     * @param array $errors
+     * @param array|null $errors
      *
      * @return Redirect $this
      */
-    public function withErrors( $errors = null) {
+    public function withErrors( $errors = null)
+    {
         if( !empty( $errors ) ) {
             (new Cookie)->setTransient(ErrorCollection::KEY, $errors);
         }
@@ -70,8 +71,8 @@ class Redirect
      *
      * @return Redirect
      */
-    public function withOldFields($fields = null, $notFields = []) {
-
+    public function withOldFields($fields = null, $notFields = [])
+    {
         $fields = $fields ?? (new Request)->getFields();
 
         if($fields instanceof Fields) {
@@ -87,6 +88,19 @@ class Redirect
     }
 
     /**
+     * With Field Errors
+     *
+     * @param array $fields array of inline field errors that match field names
+     * @param string $key
+     *
+     * @return $this
+     */
+    public function withFieldErrors(array $fields, $key = 'fields')
+    {
+        return $this->withErrors([$key => $fields]);
+    }
+
+    /**
      * Redirect to Home URL
      *
      * @param string $path
@@ -96,7 +110,7 @@ class Redirect
      */
     public function toHome( $path = '', $schema = null)
     {
-        $this->url = esc_url_raw( home_url( $path ), $schema ?: (is_ssl() ? 'https' : 'http') );
+        $this->url = get_home_url( null, $path, $schema ?: (is_ssl() ? 'https' : 'http') );
 
         return $this;
     }
@@ -164,8 +178,9 @@ class Redirect
      *
      * @return Redirect
      */
-    public function toUrl( $url ) {
-        $this->url = esc_url_raw($url);
+    public function toUrl( $url )
+    {
+        $this->url = $url;
 
         return $this;
     }
@@ -226,6 +241,25 @@ class Redirect
     }
 
     /**
+     * Redirect back to referrer if no URL is set
+     *
+     * Must be the same host
+     *
+     * @param false $self
+     * @param false $force
+     *
+     * @return $this
+     */
+    public function maybeBack($self = false, $force = false)
+    {
+        if(!$this->url) {
+            return $this->back($self, $force);
+        }
+
+        return $this;
+    }
+
+    /**
      * Flash message on next request
      *
      * When the request is marked as _tr_ajax_request transient is not
@@ -247,7 +281,8 @@ class Redirect
     /**
      * Run the redirect
      */
-    public function now() {
+    public function now()
+    {
         wp_redirect( $this->url );
         exit();
     }

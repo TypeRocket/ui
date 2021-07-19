@@ -19,7 +19,7 @@ class Taxonomy extends Registrable
     protected $postTypes = [];
     protected $modelClass = WPTerm::class;
     protected $form = [];
-    protected $resource = null;
+
     protected $existing = null;
     protected $hooksAttached = false;
     protected $maxIdLength = 32;
@@ -91,6 +91,7 @@ class Taxonomy extends Registrable
         $plural       = Sanitize::underscore( $plural );
         $singular     = Sanitize::underscore( $singular );
 
+        // obj is set on registration
         $this->resource = [
             'singular' => $singular,
             'plural' => $plural,
@@ -128,6 +129,9 @@ class Taxonomy extends Registrable
     public function setModelClass(string $modelClass)
     {
         $this->modelClass = $modelClass;
+
+        // Default resource model is not the same as the modelClass
+        $this->resource['model'] = $this->modelClass;
 
         return $this;
     }
@@ -237,15 +241,48 @@ class Taxonomy extends Registrable
     }
 
     /**
-     * Set the url slug used for rewrite rules
+     * Set the rewrite slug for the post type
      *
      * @param string $slug
+     * @param null|bool $withFront
      *
      * @return Taxonomy $this
      */
-    public function setSlug( $slug )
+    public function setSlug( $slug, $withFront = null )
     {
-        $this->args['rewrite'] = ['slug' => Sanitize::dash( $slug )];
+        if(!is_array($this->args['rewrite'])) {
+            $this->args['rewrite'] = [];
+        }
+
+        $this->args['rewrite']['slug'] = Sanitize::dash( $slug );
+
+        if(isset($withFront)) {
+            $this->args['rewrite']['with_front'] = $withFront;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Disable Slug With Front
+     *
+     * @return $this
+     */
+    public function disableSlugWithFront()
+    {
+        $this->args['rewrite']['with_front'] = false;
+
+        return $this;
+    }
+
+    /**
+     * Enable Hierarchical Rewrite
+     *
+     * @return $this
+     */
+    public function enableHierarchicalSlug()
+    {
+        $this->args['rewrite']['hierarchical'] = true;
 
         return $this;
     }
@@ -403,6 +440,7 @@ class Taxonomy extends Registrable
 
         do_action('typerocket_register_taxonomy_' . $this->id, $this );
         register_taxonomy( $this->id, $this->postTypes, $this->args );
+        $this->resource['object'] = $this;
         Registry::addTaxonomyResource($this->id, $this->resource);
         $this->attachHooks();
 

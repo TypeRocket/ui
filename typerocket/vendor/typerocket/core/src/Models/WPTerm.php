@@ -263,6 +263,8 @@ class WPTerm extends Model
         $builtin = $this->getFilteredBuiltinFields($fields);
         $term = null;
 
+        do_action('typerocket_model_create', $this, $fields);
+
         if ( ! empty( $builtin ) ) {
             $builtin = $this->slashBuiltinFields($builtin);
             remove_action('create_term', 'TypeRocket\Http\Responders\Hook::taxonomies');
@@ -281,6 +283,8 @@ class WPTerm extends Model
 
         $this->saveMeta( $fields );
 
+        do_action('typerocket_model_after_create', $this, $fields, $term);
+
         return $term;
     }
 
@@ -298,6 +302,9 @@ class WPTerm extends Model
         if($id != null) {
             $fields = $this->provisionFields( $fields );
             $builtin = $this->getFilteredBuiltinFields($fields);
+            $term = null;
+
+            do_action('typerocket_model_update', $this, $fields);
 
             if ( ! empty( $builtin ) ) {
                 $builtin = $this->slashBuiltinFields($builtin);
@@ -313,6 +320,8 @@ class WPTerm extends Model
             }
 
             $this->saveMeta( $fields );
+
+            do_action('typerocket_model_after_update', $this, $fields, $term);
 
         } else {
             $this->errors = ['No item to update'];
@@ -353,11 +362,23 @@ class WPTerm extends Model
             $ids = $this->getID();
         }
 
+        if(is_array($ids)) {
+            throw new ModelException(static::class . ' not deleted: bulk deleting not supported due to WordPress performance issues.');
+        }
+
+        do_action('typerocket_model_delete', $this, $ids);
+
         $delete = wp_delete_term($ids, $this->wpTerm($ids)->taxonomy);
 
         if ( $delete instanceof \WP_Error ) {
             throw new ModelException('WPTerm not deleted: ' . $delete->get_error_message());
         }
+
+        if ( !$delete ) {
+            throw new ModelException('WPTerm not deleted');
+        }
+
+        do_action('typerocket_model_after_delete', $this, $ids, $delete);
 
         return $this;
     }
@@ -424,7 +445,6 @@ class WPTerm extends Model
      */
     public function slashBuiltinFields( $builtin )
     {
-
         $fields = [
             'name',
             'description'

@@ -26,7 +26,6 @@ class PostType extends Registrable
     protected $archiveQuery = [];
     protected $archiveQueryTaxonomies = false;
     protected $icon = null;
-    protected $resource = null;
     protected $existing = null;
     protected $hooksAttached = false;
     protected $rootSlug = false;
@@ -86,12 +85,14 @@ class PostType extends Registrable
             $singular = Sanitize::underscore( $singular );
             $plural  = Sanitize::underscore( $plural );
 
+            // obj is set on registration
             $this->resource = Registry::getPostTypeResource($this->id) ?? [
-                    'singular' => $singular,
-                    'plural' => $plural,
-                    'model' => null,
-                    'controller' => null
-                ];
+                'singular' => $singular,
+                'plural' => $plural,
+                'model' => null,
+                'controller' => null
+            ];
+
             $args['supports'] = array_keys(get_all_post_type_supports($this->id));
             $this->args = array_merge($args, $this->args, $settings);
 
@@ -148,6 +149,9 @@ class PostType extends Registrable
     public function setModelClass(string $modelClass)
     {
         $this->modelClass = $modelClass;
+
+        // Default resource model is not the same as the modelClass
+        $this->resource['model'] = $this->modelClass;
 
         return $this;
     }
@@ -314,6 +318,31 @@ class PostType extends Registrable
     public function saveExcerptAs(callable $callback)
     {
         $this->saves['post_excerpt'] = $callback;
+
+        return $this;
+    }
+
+    /**
+     * @param callable $callback
+     *
+     * @return $this
+     */
+    public function savePostNameAs(callable $callback)
+    {
+        $this->saves['post_name'] = $callback;
+
+        return $this;
+    }
+
+    /**
+     * @param string $field
+     * @param callable $callback
+     *
+     * @return $this
+     */
+    public function saveFieldAs(string $field,callable $callback)
+    {
+        $this->saves[$field] = $callback;
 
         return $this;
     }
@@ -614,12 +643,33 @@ class PostType extends Registrable
      * Set the rewrite slug for the post type
      *
      * @param string $slug
+     * @param null|bool $withFront
      *
      * @return PostType $this
      */
-    public function setSlug( $slug )
+    public function setSlug( $slug, $withFront = null )
     {
-        $this->args['rewrite'] = ['slug' => Sanitize::dash( $slug )];
+        if(!is_array($this->args['rewrite'])) {
+            $this->args['rewrite'] = [];
+        }
+
+        $this->args['rewrite']['slug'] = Sanitize::dash( $slug );
+
+        if(isset($withFront)) {
+            $this->args['rewrite']['with_front'] = $withFront;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Disable Slug With Front
+     *
+     * @return $this
+     */
+    public function disableSlugWithFront()
+    {
+        $this->args['rewrite']['with_front'] = false;
 
         return $this;
     }
@@ -961,6 +1011,7 @@ class PostType extends Registrable
         $this->args['supports'] = $this->featureless && empty($supports) ? false : $supports;
         do_action('typerocket_post_type_register_' . $this->id, $this);
         register_post_type( $this->id, $this->args );
+        $this->resource['object'] = $this;
         Registry::addPostTypeResource($this->id, $this->resource);
         $this->attachHooks();
 

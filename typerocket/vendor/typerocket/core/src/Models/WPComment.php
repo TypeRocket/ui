@@ -105,7 +105,6 @@ class WPComment extends Model
      */
     public function wpComment($comment = null, $returnModel = false)
     {
-
         if( !$comment && $this->wpComment instanceof \WP_Comment ) {
             return $this->wpComment;
         }
@@ -143,6 +142,8 @@ class WPComment extends Model
         $builtin = $this->getFilteredBuiltinFields( $fields );
         $comment = null;
 
+        do_action('typerocket_model_create', $this, $fields);
+
         if ( ! empty( $builtin['comment_post_id'] ) &&
              ! empty( $builtin['comment_content'] )
         ) {
@@ -164,6 +165,8 @@ class WPComment extends Model
 
         $this->saveMeta( $fields );
 
+        do_action('typerocket_model_after_create', $this, $fields, $comment);
+
         return $comment;
     }
 
@@ -181,6 +184,9 @@ class WPComment extends Model
         if ($id != null) {
             $fields  = $this->provisionFields($fields);
             $builtin = $this->getFilteredBuiltinFields( $fields );
+            $comment = null;
+
+            do_action('typerocket_model_update', $this, $fields);
 
             if ( ! empty( $builtin )) {
                 remove_action( 'edit_comment', 'TypeRocket\Http\Responders\Hook::comments' );
@@ -197,6 +203,9 @@ class WPComment extends Model
             }
 
             $this->saveMeta( $fields );
+
+            do_action('typerocket_model_after_update', $this, $fields, $comment);
+
         } else {
             $this->errors = ['No item to update'];
         }
@@ -220,11 +229,19 @@ class WPComment extends Model
             $ids = $this->getID();
         }
 
+        if(is_array($ids)) {
+            throw new ModelException(static::class . ' not deleted: bulk deleting not supported due to WordPress performance issues.');
+        }
+
+        do_action('typerocket_model_delete', $this, $ids);
+
         $delete = wp_delete_comment($ids);
 
-        if ( !$delete || $delete instanceof \WP_Error ) {
-            throw new ModelException('WPComment not deleted: ' . $delete->get_error_message());
+        if ( !$delete ) {
+            throw new ModelException('WPComment not deleted');
         }
+
+        do_action('typerocket_model_after_delete', $this, $ids, $delete);
 
         return $this;
     }
@@ -245,11 +262,15 @@ class WPComment extends Model
             $ids = $this->getID();
         }
 
+        do_action('typerocket_model_delete', $this, $ids);
+
         $delete = wp_delete_comment($ids, true);
 
-        if ( $delete instanceof \WP_Error ) {
-            throw new ModelException('WPComment not deleted: ' . $delete->get_error_message());
+        if ( !$delete ) {
+            throw new ModelException('WPComment not deleted');
         }
+
+        do_action('typerocket_model_after_delete', $this, $ids, $delete);
 
         return $this;
     }

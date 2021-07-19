@@ -237,6 +237,8 @@ class WPUser extends Model implements AuthUser
         $builtin = $this->getFilteredBuiltinFields( $fields );
         $user = null;
 
+        do_action('typerocket_model_create', $this, $fields);
+
         if ( ! empty( $builtin )) {
             $builtin = $this->slashBuiltinFields($builtin);
             remove_action( 'user_register', 'TypeRocket\Http\Responders\Hook::users' );
@@ -251,6 +253,8 @@ class WPUser extends Model implements AuthUser
         }
 
         $this->saveMeta( $fields );
+
+        do_action('typerocket_model_after_create', $this, $fields, $user);
 
         return $user;
     }
@@ -268,8 +272,11 @@ class WPUser extends Model implements AuthUser
         $id = $this->getID();
         if ($id != null) {
             $fields = $this->provisionFields( $fields );
-
             $builtin = $this->getFilteredBuiltinFields( $fields );
+            $user = null;
+
+            do_action('typerocket_model_update', $this, $fields);
+
             if ( ! empty( $builtin )) {
                 $builtin = $this->slashBuiltinFields($builtin);
                 remove_action( 'profile_update', 'TypeRocket\Http\Responders\Hook::users' );
@@ -289,6 +296,9 @@ class WPUser extends Model implements AuthUser
             }
 
             $this->saveMeta( $fields );
+
+            do_action('typerocket_model_after_update', $this, $fields, $user);
+
         } else {
             $this->errors = ['No item to update'];
         }
@@ -313,11 +323,15 @@ class WPUser extends Model implements AuthUser
             $user_id = $this->getID();
         }
 
+        do_action('typerocket_model_delete', $this, $user_id);
+
         $delete = wp_delete_user($user_id, $to_user_id);
 
-        if ( $delete instanceof \WP_Error ) {
-            throw new ModelException('WPUser not deleted: ' . $delete->get_error_message());
+        if ( !$delete ) {
+            throw new ModelException('WPUser not deleted');
         }
+
+        do_action('typerocket_model_after_delete', $this, $to_user_id, $delete);
 
         return $this;
     }
@@ -338,11 +352,19 @@ class WPUser extends Model implements AuthUser
             $ids = $this->getID();
         }
 
+        if(is_array($ids)) {
+            throw new ModelException(static::class . ' not deleted: bulk deleting not supported due to WordPress performance issues.');
+        }
+
+        do_action('typerocket_model_delete', $this, $ids);
+
         $delete = wp_delete_user($ids);
 
-        if ( $delete instanceof \WP_Error ) {
-            throw new ModelException('WPUser not deleted: ' . $delete->get_error_message());
+        if ( !$delete ) {
+            throw new ModelException('WPUser not deleted');
         }
+
+        do_action('typerocket_model_after_delete', $this, $ids, $delete);
 
         return $this;
     }

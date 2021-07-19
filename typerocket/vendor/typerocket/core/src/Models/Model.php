@@ -97,6 +97,22 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
+     * Cast Array to Model Results
+     *
+     * @param array $records
+     *
+     * @return Results
+     */
+    public static function castArrayToModelResults(array $resultsArray)
+    {
+        $results_class = (new static)->getResultsClass();
+        /** @var Results $results */
+        $results = new $results_class;
+
+        return $results->exchangeAndCast($resultsArray, static::class);
+    }
+
+    /**
      * Init Query
      *
      * @param Query $query
@@ -734,7 +750,7 @@ class Model implements Formable, JsonSerializable
             foreach ( $fields->getFillable() as $field_name ) {
                 $this->unlockField($field_name);
             }
-            $fields = $fields->getArrayCopy();
+            $fields = $fields->getModelFields();
         }
 
         // Fillable
@@ -1110,7 +1126,11 @@ class Model implements Formable, JsonSerializable
 
         do_action('typerocket_model_create', $this, $fields);
 
-        return $this->query->create($fields);
+        $v = $this->query->create($fields);
+
+        do_action('typerocket_model_after_create', $this, $fields, $v);
+
+        return $v;
     }
 
     /**
@@ -1126,7 +1146,33 @@ class Model implements Formable, JsonSerializable
 
         do_action('typerocket_model_update', $this, $fields);
 
-        return $this->query->where($this->idColumn, $this->getID())->update($fields);
+        $v =  $this->query->where($this->idColumn, $this->getID())->update($fields);
+
+        do_action('typerocket_model_after_update', $this, $fields, $v);
+
+        return $v;
+    }
+
+    /**
+     * Delete
+     *
+     * @param array|ArrayObject|int $ids
+     *
+     * @return array|false|int|null|object
+     */
+    public function delete( $ids = null )
+    {
+        if(is_null($ids) && $this->hasProperties()) {
+            $ids = $this->getID();
+        }
+
+        do_action('typerocket_model_delete', $this, $ids);
+
+        $v = $this->query->delete($ids);
+
+        do_action('typerocket_model_after_delete', $this, $ids, $v);
+
+        return $v;
     }
 
     /**
@@ -1212,6 +1258,24 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
+     * Find First Where Or Create With
+     *
+     * @param string $column column to search
+     * @param string $value exact value lookup only
+     *
+     * @return static
+     */
+    public function findFirstWhereOrNewWith($column, $value)
+    {
+        if(!$item = $this->where($column, $value)->first()) {
+            $item = new static;
+            $item->{$column} = $value;
+        }
+
+        return $item;
+    }
+
+    /**
      * Where
      *
      * @param string $column
@@ -1220,7 +1284,7 @@ class Model implements Formable, JsonSerializable
      * @param string $condition
      * @param null|int $num
      *
-     * @return Model
+     * @return static
      */
     public function findFirstWhereOrNew($column, $arg1, $arg2 = null, $condition = 'AND', $num = null)
     {
@@ -1316,24 +1380,6 @@ class Model implements Formable, JsonSerializable
         }
 
         return $result;
-    }
-
-    /**
-     * Delete
-     *
-     * @param array|ArrayObject|int $ids
-     *
-     * @return array|false|int|null|object
-     */
-    public function delete( $ids = null )
-    {
-        if(is_null($ids) && $this->hasProperties()) {
-            $ids = $this->getID();
-        }
-
-        do_action('typerocket_model_delete', $this, $ids);
-
-        return $this->query->delete($ids);
     }
 
     /**
