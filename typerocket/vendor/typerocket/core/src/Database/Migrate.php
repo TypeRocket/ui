@@ -66,13 +66,13 @@ class Migrate
      *
      * Set wp_options name to save run migration timestamps too
      *
-     * @param string $option
+     * @param null|string $option
      *
      * @return static
      */
-    public function setOption(string $option)
+    public function setOption(?string $option)
     {
-        $this->option = $option;
+        $this->option = $option ?? $this->option;
 
         return $this;
     }
@@ -229,7 +229,9 @@ class Migrate
                 $result['message'] = 'No migrations to rollback';
             }
 
-            throw new MigrationException($result['message']);
+            $migrationError = new MigrationException($result['message']);
+            $migrationError->errorType = 'info';
+            throw $migrationError;
         }
 
         foreach ($query_strings as $file => $query) {

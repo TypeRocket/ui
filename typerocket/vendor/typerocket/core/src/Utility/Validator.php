@@ -5,6 +5,7 @@ use TypeRocket\Exceptions\RedirectError;
 use TypeRocket\Http\Request;
 use TypeRocket\Http\Response;
 use TypeRocket\Http\Redirect;
+use TypeRocket\Utility\Validators\DateTimeLocalValidator;
 use TypeRocket\Utility\Validators\ValidatorRule;
 use TypeRocket\Utility\Validators\CallbackValidator;
 use TypeRocket\Utility\Validators\EmailValidator;
@@ -35,6 +36,7 @@ class Validator
         CallbackValidator::KEY => CallbackValidator::class,
         EmailValidator::KEY => EmailValidator::class,
         KeyValidator::KEY => KeyValidator::class,
+        DateTimeLocalValidator::KEY => DateTimeLocalValidator::class,
         MaxLengthValidator::KEY => MaxLengthValidator::class,
         MinLengthValidator::KEY => MinLengthValidator::class,
         NumericValidator::KEY => NumericValidator::class,
@@ -393,9 +395,8 @@ class Validator
      */
     protected function setErrorMessage(ValidatorRule $class, $fullDotPath)
     {
-        $message = $class->getError();
-        $this->errors[$fullDotPath] = $class->getFieldLabel() . ' ' .  $message;
-        $this->errorFields[$fullDotPath] = trim($message);
+        $error_message = $class->getError();
+        $error_message_full = $class->getFieldLabel() . ' ' .  $error_message;
         $type = $class::KEY;
         $index = $fullDotPath.':'.$type;
         $validate = $value = $matches = false;
@@ -417,15 +418,19 @@ class Validator
 
         if($validate) {
             if(is_callable($value)) {
-                $this->errors[$fullDotPath] = call_user_func($value, $fullDotPath, $type, $this->errors[$fullDotPath], $matches);
-                $this->errorFields[$fullDotPath] = $this->errors[$fullDotPath];
+                $error_message = $error_message_full = call_user_func($value, $fullDotPath, $type, $error_message_full, $matches, $error_message);
             } else {
-                $error_message = $class->getError();
-                $error_message = isset($value) ? str_replace('{error}', $error_message, $value) : $error_message;
-                $this->errors[$fullDotPath] = $error_message;
-                $this->errorFields[$fullDotPath] = $error_message;
+                $error_message = $error_message_full = isset($value) ? str_replace('{error}', $error_message, $value) : $error_message;
+            }
+
+            if(is_array($error_message)) {
+                $error_message_full = $error_message['full'];
+                $error_message = $error_message['field'];
             }
         }
+
+        $this->errors[$fullDotPath] = $this->errors[$fullDotPath] ?? $error_message_full;
+        $this->errorFields[$fullDotPath] = $this->errorFields[$fullDotPath] ?? trim($error_message);
     }
 
     /**
@@ -473,8 +478,14 @@ class Validator
         }
 
         $list = [];
+        $weak_all = null;
 
         if(is_string($validationRules)) {
+            if($validationRules[0] === '?') {
+                $weak_all = true;
+                $validationRules = substr($validationRules, 1);
+            }
+
             $validationRules = explode('|', (string) $validationRules);
         }
 
@@ -482,12 +493,34 @@ class Validator
             $list = $validationRules;
         }
 
-        foreach( $list as $validation)
+        foreach($list as $validation)
         {
-            $class = null;
+            $class = $weak = $subfields = null;
+            $value_checked = $value;
 
             if(is_string($validation)) {
                 [ $type, $option, $option2, $option3 ] = array_pad(explode(':', $validation, 4), 4, null);
+
+                if($type[0] === '?') {
+                    $weak = true;
+                    $type = substr($type, 1);
+                }
+
+                $weak = $weak ?? $weak_all;
+
+                if(Str::starts('only_subfields=', $option)) {
+                    $only_subfields = explode('/', $option)[0];
+                    $subfields = explode(',', substr($only_subfields, 15));
+                    $value_checked = Arr::only($value, $subfields);
+
+                    $value_checked = array_filter($value_checked, function($v) {
+                        return isset($v);
+                    });
+
+                    $value_checked = Arr::isEmptyArray($value_checked) ? null : $value_checked;
+
+                    $option = substr($option, strlen($only_subfields) + 1) ?: null;
+                }
 
                 if(array_key_exists($type, $this->validatorMap)) {
                     $class = $this->validatorMap[$type];
@@ -500,6 +533,9 @@ class Validator
                         'option' => $option,
                         'option2' => $option2,
                         'option3' => $option3,
+                        'weak' => $weak,
+                        'value' => $value_checked,
+                        'subfields' => $subfields,
                     ]);
 
                     $class = new $class;
@@ -511,7 +547,7 @@ class Validator
 
             if($class instanceof ValidatorRule) {
                 $class->setArgs($args);
-                $this->runValidatorRule($class, $fullDotPath, $value);
+                $this->runValidatorRule($class, $fullDotPath, $value_checked);
                 continue;
             }
 
@@ -526,7 +562,11 @@ class Validator
      */
     protected function runValidatorRule(ValidatorRule $rule, string $fullDotPath, $value)
     {
-        $pass = $rule->validate();
+        if($rule->isOptional() && Data::emptyOrBlankRecursive($value)) {
+            $pass = true;
+        } else {
+            $pass = $rule->validate();
+        }
 
         if( !$pass ) {
             $this->setErrorMessage($rule, $fullDotPath);

@@ -40,6 +40,47 @@ class Query
     }
 
     /**
+     * Merge
+     *
+     * Create a new query from other queries but keeps list (see code)
+     *
+     * @param Query $query
+     *
+     * @return $this
+     */
+    public function merge(Query $query)
+    {
+        $list = [];
+        $select = $this->query['select'] ?? null;
+        $table = $this->query['table'] ?? null;
+
+        $list[] = ['joins' => [[
+            'type' => 'INNER JOIN',
+            'table' => $query->query['table']
+        ]]];
+        $list[] = $query->query;
+        $list[] = ['where' => 'AND'];
+
+        $list[] = $this->query;
+        $new = array_merge_recursive(...$list);
+        $new['select'] = $select ?? ($table . '.*');
+
+        $keeps = [
+            'data', 'data_values', 'table', 'select',
+            'create', 'update', 'take', 'order_by', 'function',
+            'distinct', 'union', 'group_by'
+        ];
+        foreach ($keeps as $keep) {
+            $new[$keep] = $this->query[$keep] ?? null;
+        }
+
+        $new = array_filter($new);
+        $this->query = $new;
+
+        return $this;
+    }
+
+    /**
      * Get Date Time
      *
      * @return bool|string
@@ -57,6 +98,15 @@ class Query
     public function getIdColumn()
     {
         return $this->idColumn;
+    }
+
+    /**
+     * @return string
+     */
+    public function getIdColumWithTable()
+    {
+        $table = $this->query['table'] ? "`{$this->query['table']}`." : '';
+        return "{$table}`{$this->idColumn}`";
     }
 
     /**
@@ -196,6 +246,30 @@ class Query
     }
 
     /**
+     * Modify Where
+     *
+     * @param int $index
+     * @param array $args
+     * @param bool $merge
+     *
+     * @return $this
+     */
+    public function modifyWhere($index, $args, $merge = true)
+    {
+        if(empty($this->query['where'])) {
+            return $this;
+        }
+
+        if($index === -1) {
+            $index = count($this->query['where']) - 1;
+        }
+
+        $this->query['where'][$index] = $merge ? array_merge($this->query['where'][$index], $args) : $args;
+
+        return $this;
+    }
+
+    /**
      * Or Where
      *
      * @param string $column
@@ -278,6 +352,22 @@ class Query
     }
 
     /**
+     * Append Raw Order By
+     *
+     * This method is not sanitized before it is run. Do not
+     * use this method with user provided input.
+     *
+     * @param string $sql string
+     * @return $this
+     */
+    public function appendRawOrderBy($sql)
+    {
+        $this->query['raw']['order_by'][] = $sql;
+
+        return $this;
+    }
+
+    /**
      * Reorder
      *
      * @param string $column
@@ -300,13 +390,13 @@ class Query
     /**
      * Group By
      *
-     * @param string $column
+     * @param string|array $column
      *
      * @return $this
      */
     public function groupBy($column)
     {
-        $this->query['group_by']['column'] = $column;
+        $this->query['group_by']['column'] = (array) $column;
 
         return $this;
     }
@@ -458,20 +548,21 @@ class Query
     /**
      * Delete
      *
-     * @param array|\ArrayObject|int $ids
+     * @param array|int $ids
      *
      * @return array|false|int|null|object
      */
     public function delete( $ids = null )
     {
         $this->setQueryType('delete');
+        $idColumnWhere = $this->query['table'] . '.' . $this->idColumn;
 
-        if(is_int($ids)) {
-            $this->where( $this->idColumn , $ids);
-        }
-
-        if(is_array($ids)) {
-            $this->where( $this->idColumn , 'IN', $ids);
+        if(is_numeric($ids)) {
+            $this->where( $idColumnWhere , $ids);
+        } elseif (is_array($ids)) {
+            $this->where( $idColumnWhere , 'IN', $ids);
+        } elseif(defined('TYPEROCKET_QUERY_DELETE_ANY') && constant('TYPEROCKET_QUERY_DELETE_ANY') === true) {
+            $this->where( $idColumnWhere , $ids);
         }
 
         return $this->runQuery();
@@ -734,6 +825,9 @@ class Query
         $count_clone = clone $this;
         $page = $page ?? $_GET['paged'] ?? $_GET['page'] ?? 1;
 
+        if(!is_numeric($page)) { $page = 1; }
+        $page = (int) $page;
+
         $this->take($number, $page < 2 ? 0 : $number * ( $page - 1), false);
         $this->returnOne = false;
 
@@ -982,8 +1076,13 @@ class Query
         $sql = '';
 
         if( array_key_exists('group_by', $query) ) {
-            $column = $this->tickSqlName($query['group_by']['column']);
-            $sql = ' GROUP BY '.$column.' ';
+
+            $columns = (array) $query['group_by']['column'];
+            $columns = array_map(function($column) {
+                return $this->tickSqlName($column);
+            }, $columns);
+
+            $sql = ' GROUP BY '.implode(', ', $columns).' ';
         }
 
         return $sql;
@@ -1017,9 +1116,14 @@ class Query
     {
         $query = $this->query;
         $sql = '';
+        $order_basic_tapped = false;
+
+        if( !empty($query['order_by']) || !empty($query['raw']['order_by']) ) {
+            $sql .= " ORDER BY ";
+        }
 
         if( !empty($query['order_by']) ) {
-            $sql .= " ORDER BY ";
+            $order_basic_tapped = true;
 
             $order = array_map(function($ordering) {
                 $order_column = $this->tickSqlName($ordering['column']);
@@ -1028,6 +1132,11 @@ class Query
             }, $query['order_by']);
 
             $sql .= implode(' , ', $order);
+        }
+
+        if( !empty($query['raw']['order_by']) ) {
+            $sql .= $order_basic_tapped ? ' , ' : '';
+            $sql .= implode(' , ', $query['raw']['order_by']);
         }
 
         return $sql;
@@ -1178,6 +1287,7 @@ class Query
                         'column' => $this->tickSqlName($where['column']),
                         'operator' => $where['operator'] ?? '=',
                         'value' => $where['value'] ?? null,
+                        'raw' => $where['raw'] ?? false,
                     ];
 
                     if($where['value'] === null) {
@@ -1197,12 +1307,15 @@ class Query
 
                         $where['value'] = '(' . implode(',', $where['value']) . ')';
                     } else {
-                        $where['value'] = $this->prepareValue($where['value']);
+                        $where['value'] = $where['raw'] ? $where['value'] : $this->prepareValue($where['value']);
+                        // $where['value'] = $this->prepareValue($where['value']);
                     }
 
                     if(array_key_exists('condition', $where) && $where['condition'] === null) {
                         unset($where['condition']);
                     }
+
+                    if(array_key_exists('raw', $where)) { unset($where['raw']); }
 
                     $sql .= ' ' . implode(' ', $where);
                 }
@@ -1295,8 +1408,6 @@ class Query
      */
     protected function tickSqlName($column)
     {
-        $c = $column;
-
         $c = preg_replace($this->columnPattern, '', $column);
 
         if(!Str::contains('`', $column)) {

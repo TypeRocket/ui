@@ -1,7 +1,6 @@
 <?php
 namespace TypeRocket\Elements\Fields;
 
-use TypeRocket\Core\Container;
 use TypeRocket\Core\System;
 use TypeRocket\Elements\Traits\DefaultSetting;
 use TypeRocket\Html\Html;
@@ -31,6 +30,8 @@ class Color extends Field implements ScriptField
      */
     public function getString()
     {
+        if(!$this->canDisplay()) { return ''; }
+
         $name  = $this->getNameAttributeString();
         $value = $this->setCast('string')->getValue();
         $default = $this->getDefault();
@@ -44,7 +45,9 @@ class Color extends Field implements ScriptField
         $this->setAttribute('data-tr-field', $this->getContextId());
 
         $callback = function() use ($palette) {
-            wp_localize_script( 'typerocket-scripts', $palette, $this->getSetting( 'palette' ) );
+            if($colors = $this->getSetting( 'palette' )) {
+                wp_localize_script( 'typerocket-scripts', $palette, $colors );
+            }
         };
 
         if ( !is_admin() && System::getFromContainer()->frontendIsEnabled() ) {

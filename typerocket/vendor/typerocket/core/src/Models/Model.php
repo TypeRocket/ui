@@ -11,10 +11,12 @@ use TypeRocket\Database\Query;
 use TypeRocket\Database\Results;
 use TypeRocket\Database\ResultsMeta;
 use TypeRocket\Elements\Fields\Field;
+use TypeRocket\Exceptions\ModelException;
 use TypeRocket\Http\Auth;
 use TypeRocket\Http\Fields;
 use TypeRocket\Http\Request;
 use TypeRocket\Interfaces\Formable;
+use TypeRocket\Models\Traits\ArrayReplaceRecursiveValues;
 use TypeRocket\Models\Traits\FieldValue;
 use TypeRocket\Models\Traits\Searchable;
 use TypeRocket\Services\AuthorizerService;
@@ -26,7 +28,7 @@ use wpdb;
 
 class Model implements Formable, JsonSerializable
 {
-    use Searchable, FieldValue;
+    use Searchable, FieldValue, ArrayReplaceRecursiveValues;
 
     protected $fillable = [];
     protected $restMetaFields = [];
@@ -594,6 +596,10 @@ class Model implements Formable, JsonSerializable
              $value = $this->mutatePropertySet($key, $value);
         }
 
+        if($current_value = $this->propertiesUnaltered[$key] ?? null) {
+            $value = $this->getNewArrayReplaceRecursiveValue($key, $current_value, $value);
+        }
+
         $this->properties[$key] = $value;
         $this->explicitProperties[$key] = $value;
 
@@ -670,6 +676,34 @@ class Model implements Formable, JsonSerializable
     public function getPropertiesUnaltered()
     {
         return $this->propertiesUnaltered;
+    }
+
+    /**
+     * @param string $field
+     *
+     * @return $this
+     */
+    public function appendMetalessField(string $field)
+    {
+        if(!in_array($field, $this->metaless)) {
+            $this->metaless[] = $field;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param string $field
+     *
+     * @return $this
+     */
+    public function removeMetalessField(string $field)
+    {
+        if(($key = array_search($field, $this->metaless)) !== false) {
+            unset($this->metaless[$key]);
+        }
+
+        return $this;
     }
 
     /**
@@ -1048,6 +1082,22 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
+     * Append Raw Order By
+     *
+     * This method is not sanitized before it is run. Do not
+     * use this method with user provided input.
+     *
+     * @param string $sql string
+     * @return $this
+     */
+    public function appendRawOrderBy($sql)
+    {
+        $this->query->appendRawOrderBy($sql);
+
+        return $this;
+    }
+
+    /**
      * Reorder
      *
      * @param string $column
@@ -1146,7 +1196,15 @@ class Model implements Formable, JsonSerializable
 
         do_action('typerocket_model_update', $this, $fields);
 
-        $v =  $this->query->where($this->idColumn, $this->getID())->update($fields);
+        if(is_array($fields)) {
+            foreach ($fields as $field => $value) {
+                if($current_value = $this->propertiesUnaltered[$field] ?? null) {
+                    $fields[$field] = $this->getNewArrayReplaceRecursiveValue($field, $current_value, $value);
+                }
+            }
+        }
+
+        $v = $this->query->where($this->idColumn, $this->getID())->update($fields);
 
         do_action('typerocket_model_after_update', $this, $fields, $v);
 
@@ -1383,6 +1441,40 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
+     * @param string $relationship
+     * @param null|callable $scope
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    public function has(string $relationship, $scope = null)
+    {
+        if(!method_exists($this, $relationship)) {
+            throw new \Exception("No such relationship of '{$relationship}' exists for " . get_class($this));
+        }
+
+        $rel = $this->{$relationship}();
+
+        if(!$rel instanceof Model) {
+            throw new \Exception("Trying to get relationship of '{$relationship}' but no Model class is returned for " . get_class($this));
+        }
+
+        $rel->getQuery()->modifyWhere(-1, [
+            'value' => $this->getQuery()->getIdColumWithTable(),
+            'operator' => '=',
+            'raw' => true
+        ]);
+
+        if(is_callable($scope)) {
+            $scope($rel);
+        }
+
+        $this->query->merge($rel->getQuery());
+
+        return $this;
+    }
+
+    /**
      * Count results
      *
      * @param string $column
@@ -1527,16 +1619,70 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
-     * Save changes directly
+     * Has ID Column Set
+     *
+     * @return bool
+     */
+    public function hasIdColumn() : bool
+    {
+        return isset( $this->properties[$this->getIdColumn()] );
+    }
+
+    /**
+     * Save Changes Then Get New Model
+     *
+     * Save model and then return a fresh instance of the model.
      *
      * @param array|Fields $fields
      *
-     * @return mixed
+     * @return mixed|Model|null
+     */
+    public function saveAndGet($fields = [])
+    {
+        if( $this->hasIdColumn() && $this->findById($this->getID()) ) {
+            if($updated = $this->update($fields)) {
+                if($updated instanceof Model) {
+                    return $updated;
+                }
+                $modelClass = get_class($this);
+
+                return (new $modelClass)->findById($this->getID());
+            }
+
+            return null;
+        }
+
+        if($created = $this->create($fields)) {
+            if($created instanceof Model) {
+                return $created;
+            }
+
+            $modelClass = get_class($this);
+
+            return (new $modelClass)->findById($created);
+        }
+
+        return null;
+    }
+
+    /**
+     * Save changes directly
+     *
+     * - Return Model when using built-in WP models.
+     * - Return bool when update on custom model.
+     * - Return int when create on custom model.
+     *
+     * @param array|Fields $fields
+     *
+     * @return mixed|bool|int
      */
     public function save( $fields = [] )
     {
         if( isset( $this->properties[$this->idColumn] ) && $this->findById($this->properties[$this->idColumn]) ) {
-            return $this->update($fields);
+            $update = $this->update($fields);
+            if($update === 1 || $update === 0) {
+                return (bool) $update;
+            }
         }
         return $this->create($fields);
     }
@@ -1599,7 +1745,7 @@ class Model implements Formable, JsonSerializable
      */
     public function getCast( $property )
     {
-        $value = !empty($this->properties[$property]) ? $this->properties[$property] : null;
+        $value = $this->properties[$property] ?? null;
 
         if ( ! empty( $this->cast[$property] ) ) {
             $handle = $this->cast[$property];
@@ -1716,7 +1862,7 @@ class Model implements Formable, JsonSerializable
      *
      * This is for Many to Many relationships.
      *
-     * @param string $modelClass
+     * @param string|array $modelClass
      * @param string $junction_table
      * @param null|string $id_column
      * @param null|string $id_foreign
@@ -1727,6 +1873,7 @@ class Model implements Formable, JsonSerializable
      */
     public function belongsToMany( $modelClass, $junction_table, $id_column = null, $id_foreign = null, $scope = null, $reselect = true )
     {
+        [$modelClass, $modelClassOn] = array_pad((array) $modelClass, 2, null);
         // Column ID
         if( ! $id_column && $this->resource ) {
             $id_column =  $this->resource . '_id';
@@ -1750,9 +1897,15 @@ class Model implements Formable, JsonSerializable
             'id_foreign' => $id
         ] );
 
+        if(isset($modelClassOn) && class_exists($modelClassOn)) {
+            $relationshipOn = new $modelClassOn;
+        } else {
+            $relationshipOn = $relationship;
+        }
+
         // Join
         $join_table = $junction_table;
-        $rel_join = $rel_table.'.'.$relationship->getIdColumn();
+        $rel_join = $relationshipOn->getTable().'.'.$relationshipOn->getIdColumn();
         $foreign_join = $join_table.'.'.$id_foreign;
         $where_column = $join_table.'.'.$id_column;
         $relationship->getQuery()->distinct()->join($join_table, $foreign_join, $rel_join);
@@ -1779,7 +1932,7 @@ class Model implements Formable, JsonSerializable
             $relationship->reselect($rel_table.'.*');
         }
 
-        return  $relationship->where($where_column, $id)->findAll();
+        return $relationship->where($where_column, $id)->findAll();
     }
 
     /**
@@ -2037,7 +2190,7 @@ class Model implements Formable, JsonSerializable
      */
     public function getPropertyValue($key)
     {
-      return $this->getPropertyFromArray($key);
+        return $this->getPropertyFromArray($key);
     }
 
     /**
@@ -2085,17 +2238,23 @@ class Model implements Formable, JsonSerializable
      */
     protected function getPropertyFromArray($key)
     {
-        $value = null;
-
-        if (array_key_exists($key, $this->properties)) {
-            $value = $this->properties[$key];
-        }
+        $value = $this->properties[$key] ?? null;
 
         if ($this->hasGetMutator($key)) {
             return $this->mutatePropertyGet($key, $value);
         }
 
         return $value;
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return mixed|null
+     */
+    public function getPropertyValueDirect(string $key)
+    {
+        return $this->properties[$key] ?? null;
     }
 
     /**
@@ -2107,7 +2266,8 @@ class Model implements Formable, JsonSerializable
      */
     protected function getRelationshipFromMethod($method)
     {
-      return $this->$method() ? $this->$method()->get() : null;
+        $rel = $this->$method() ?? null;
+        return is_object($rel) ? $rel->get() : null;
     }
 
     /**

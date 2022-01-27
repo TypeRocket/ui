@@ -5,7 +5,7 @@
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => 'cf993cbd645a2918351de3bddb106fe9f0414db5',
+        'reference' => '1eb9f488ee4d9f55fb58f0227be6e819ad2bd90b',
         'name' => 'typerocket/typerocket',
         'dev' => false,
     ),
@@ -18,7 +18,7 @@
             'aliases' => array(
                 0 => '9999999-dev',
             ),
-            'reference' => 'ede7b6d88cde6006eb55405cdbd8096016f8a5d9',
+            'reference' => '93fcbca648395fbdcaa6284526dca1f2d035d639',
             'dev_requirement' => false,
         ),
         'typerocket/typerocket' => array(
@@ -27,7 +27,7 @@
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => 'cf993cbd645a2918351de3bddb106fe9f0414db5',
+            'reference' => '1eb9f488ee4d9f55fb58f0227be6e819ad2bd90b',
             'dev_requirement' => false,
         ),
     ),
