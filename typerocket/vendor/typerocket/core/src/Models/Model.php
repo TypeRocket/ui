@@ -101,7 +101,7 @@ class Model implements Formable, JsonSerializable
     /**
      * Cast Array to Model Results
      *
-     * @param array $records
+     * @param array $resultsArray
      *
      * @return Results
      */
@@ -131,7 +131,7 @@ class Model implements Formable, JsonSerializable
      *
      * @param wpdb $wpdb
      *
-     * @return null
+     * @return null|string
      */
     protected function initTable($wpdb)
     {
@@ -147,7 +147,7 @@ class Model implements Formable, JsonSerializable
      * User Can
      *
      * @param $action
-     * @param null $user
+     * @param null|WPUser|Auth $user
      * @return mixed
      * @throws \Exception
      */
@@ -1130,6 +1130,20 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
+     * Group By
+     *
+     * @param string|string[] $column
+     *
+     * @return $this
+     */
+    public function groupBy($column)
+    {
+        $this->query->groupBy($column);
+
+        return $this;
+    }
+
+    /**
      * Get Results Class
      *
      * @return string
@@ -1358,7 +1372,7 @@ class Model implements Formable, JsonSerializable
      *
      * @param string $column
      * @param string $arg1
-     * @param null $arg2
+     * @param null|string|array $arg2
      * @param string $condition
      * @param null|int $num
      *
@@ -1639,7 +1653,8 @@ class Model implements Formable, JsonSerializable
      */
     public function saveAndGet($fields = [])
     {
-        if( $this->hasIdColumn() && $this->findById($this->getID()) ) {
+        $current = $this->findById($this->getID());
+        if( $this->hasIdColumn() && $current ) {
             if($updated = $this->update($fields)) {
                 if($updated instanceof Model) {
                     return $updated;
@@ -1649,7 +1664,7 @@ class Model implements Formable, JsonSerializable
                 return (new $modelClass)->findById($this->getID());
             }
 
-            return null;
+            return $current;
         }
 
         if($created = $this->create($fields)) {
@@ -1761,7 +1776,7 @@ class Model implements Formable, JsonSerializable
      * @param string $modelClass
      * @param null|string $id_foreign
      *
-     * @param null $scope
+     * @param null|callable $scope
      * @return mixed|null
      */
     public function hasOne($modelClass, $id_foreign = null, $scope = null)
@@ -2171,7 +2186,7 @@ class Model implements Formable, JsonSerializable
      * Set attribute as property
      *
      * @param string $key
-     * @param null $value
+     * @param null|mixed $value
      */
     public function __set($key, $value = null)
     {
@@ -2534,6 +2549,7 @@ class Model implements Formable, JsonSerializable
     /**
      * @inheritDoc
      */
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();

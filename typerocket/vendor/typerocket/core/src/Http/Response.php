@@ -636,7 +636,7 @@ class Response implements JsonSerializable
     /**
      * Get Data
      *
-     * @param null $key
+     * @param null|string $key
      *
      * @return array|string|int
      */
@@ -972,7 +972,7 @@ class Response implements JsonSerializable
     /**
      * Exit as Server Error
      *
-     * @param null $message
+     * @param null|string $message
      * @param int $code
      */
     public function exitServerError($message = null, $code = 500)
@@ -1115,6 +1115,7 @@ class Response implements JsonSerializable
     /**
      * @inheritDoc
      */
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->toArray();
