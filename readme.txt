@@ -35,6 +35,12 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 
 == Changelog ==
 
+= 5.0.9 =
+
+* Add WordPress 6.0 support.
+* Improve code.
+* Fix bugs.
+
 = 5.0.8 =
 
 * Add WordPress 5.9 support.
