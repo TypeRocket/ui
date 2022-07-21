@@ -3,8 +3,8 @@ Contributors: kevindees
 Tags: custom post types, CPT, CMS, post, types, post type, taxonomy, tax, custom, content types, post types, box, meta-box, meta-boxes
 Requires at least: 5.5
 Requires PHP: 7.2.5
-Tested up to: 6.0
-Stable Tag: 5.0.9
+Tested up to: 6.0.1
+Stable Tag: 5.0.10
 License: GPLv2 or later
 
 This plugin provides a powerful user interface for creating post types, taxonomies, and meta boxes.
@@ -20,7 +20,7 @@ Add custom post types and taxonomies to your website without code. With the Type
 5. Gutenberg controls.
 7. And much more.
 
-For over 9 years, [TypeRocket](https://typerocket.com/) has helped thousands of developers and designers craft powerful WordPress websites. With TypeRocket UI, you get many of the powerful features the TypeRocket developers have come to know and trust in a graphical interface.
+For over 12 years, [TypeRocket](https://typerocket.com/) has helped thousands of developers and designers craft powerful WordPress websites. With TypeRocket UI, you get many of the powerful features the TypeRocket developers have come to know and trust in a graphical interface.
 
 == Installation ==
 
@@ -34,6 +34,12 @@ Upload the typerocket-ui plugin to your blog. Activate it! Then Go to TypeRocket
 4. Override an existing post type.
 
 == Changelog ==
+
+= 5.0.10 =
+
+* Add WordPress 6.0.1 support.
+* Improve code.
+* Fix bugs.
 
 = 5.0.9 =
 
