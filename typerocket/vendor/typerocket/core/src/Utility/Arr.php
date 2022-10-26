@@ -12,7 +12,21 @@ class Arr
      */
     public static function isEmptyArray($array) : bool
     {
-        return is_array($array) && count($array) === 0;
+        return $array === [];
+    }
+
+    /**
+     * Filter Null Values Only
+     *
+     * @param array $list
+     *
+     * @return array
+     */
+    public static function filterNull(array $list) : array
+    {
+        return array_filter($list, function($v, $k) {
+            return !is_null($v);
+        }, ARRAY_FILTER_USE_BOTH);
     }
 
     /**
@@ -88,7 +102,7 @@ class Arr
      */
     public static function mapDeep(callable $callback, $value)
     {
-        return map_deep($value, $callback);
+        return Data::mapDeep($callback, $value);
     }
 
     /**
@@ -96,16 +110,17 @@ class Arr
      *
      * @param string $index
      * @param array $array
+     * @param bool $unique
      *
      * @return array
      * @throws \Exception
      */
-    public static function indexBy(string $index, array $array) : array
+    public static function indexBy(string $index, array $array, $unique = true) : array
     {
         $indexed_list = [];
 
         foreach ($array as $item) {
-            if(!is_array($item) || array_key_exists($item[$index], $indexed_list)) {
+            if(!is_array($item) || ($unique && array_key_exists($item[$index], $indexed_list))) {
                 throw new \Exception('Array list required and array key must be unique for Arr::indexBy.');
             }
 
@@ -208,6 +223,66 @@ class Arr
     }
 
     /**
+     * Array Get
+     *
+     * Strictly get a value from an array using dot notation without wilds (*).
+     *
+     * @param array|\ArrayAccess $array Array to search.
+     * @param string|array $needle Value to check in dot notation, or an array of string values.
+     * @param mixed $default Fallback if value is null.
+     */
+    public static function get($array, $needle, $default = null)
+    {
+        $search = is_array($needle) ? $needle : explode('.', $needle);
+
+        foreach ($search as $index) {
+            if(is_array($array) && array_key_exists($index, $array)) {
+                $array = $array[$index];
+            }
+            else {
+                return $default;
+            }
+        }
+
+        return $array;
+    }
+
+    /**
+     * Array Has
+     *
+     * Strictly check if dot notation without wilds (*) index exists.
+     *
+     * @param array|\ArrayAccess $array Array to search.
+     * @param string|array $needle Value to check in dot notation, or an array of string values.
+     */
+    public static function has($array, $needle)
+    {
+        $needles = (array) $needle;
+        $main = $array;
+
+        foreach ($needles as $n) {
+
+            $search = is_array($n) ? $n : explode('.', $n);
+
+            foreach ($search as $index) {
+                if(is_array($array) && array_key_exists($index, $array)) {
+                    $array = $array[$index];
+                }
+                elseif($array instanceof \ArrayAccess && $array->offsetExists($index)) {
+                    $array = $array[$index];
+                }
+                else {
+                    return false;
+                }
+            }
+
+            $array = $main;
+        }
+
+        return true;
+    }
+
+    /**
      * Dots Set
      *
      * Set an array value using dot notation.
@@ -285,6 +360,77 @@ class Arr
     }
 
     /**
+     * Is Array Sequential
+     *
+     * @param array $array The array being evaluated.
+     * @return bool
+     */
+    public static function isSequential(array $array) : bool
+    {
+        if ([] === $array) return false;
+        return array_keys($array) === range(0, count($array) - 1);
+    }
+
+    /**
+     * Is Array Associative
+     *
+     * @param array $array The array being evaluated.
+     * @return bool
+     */
+    public static function isAssociative(array $array) : bool
+    {
+        if ([] === $array) return false;
+        return !static::isSequential($array);
+    }
+
+    /**
+     * Is Array Accessible
+     *
+     * @param mixed $var The variable being evaluated.
+     */
+    public static function isAccessible($var) : bool
+    {
+        return is_array($var) || $var instanceof \ArrayAccess;
+    }
+
+    /**
+     * Array Divide
+     *
+     * Return key and values as separate arrays.
+     *
+     * @param array $array
+     * @return array
+     */
+    public static function divide(array $array) : array
+    {
+        return [array_keys($array), array_values($array)];
+    }
+
+    /**
+     * Array Partition
+     *
+     * Partition and spread array semi-evenly across a number of groups.
+     *
+     * @param array $array The array being evaluated.
+     * @param int $groups The number of groups.
+     */
+    public static function partition(array $array, int $groups) : array
+    {
+        $count = count( $array );
+        $parts = floor( $count / $groups );
+        $rem = $count % $groups;
+        $partition = [];
+        $mark = 0;
+        for ($index = 0; $index < $groups; $index++)
+        {
+            $incr = ($index < $rem) ? $parts + 1 : $parts;
+            $partition[$index] = array_slice( $array, $mark, $incr );
+            $mark += $incr;
+        }
+        return $partition;
+    }
+
+    /**
      * Array Keys Exist
      *
      * @param array $keys an array of key names
@@ -295,5 +441,62 @@ class Arr
     public static function keysExist(array $keys, array $array)
     {
         return !array_diff_key(array_flip($keys), $array);
+    }
+
+    /**
+     * Exists
+     *
+     * @param  \ArrayAccess|array  $array
+     * @param  string|int  $key
+     * @return bool
+     */
+    public static function exists($array, $key) : bool
+    {
+        if (is_float($key)) {
+            $key = (string) $key;
+        }
+
+        if($array instanceof \ArrayAccess) {
+            return $array->offsetExists($key);
+        }
+
+        return array_key_exists($key, $array);
+    }
+
+    /**
+     * First Item
+     *
+     * @param array|\ArrayObject $array
+     * @return mixed|null
+     */
+    public static function first($array, $callback = null, $default = null)
+    {
+        if(is_callable($callback))
+        {
+            foreach ($array as $key => $value) {
+                if($callback($value, $key) === true) {
+                    return $value;
+                }
+            }
+        }
+        else
+        {
+            foreach ($array as $item) {
+                return $item;
+            }
+        }
+
+        return $default;
+    }
+
+    /**
+     * Last Item
+     *
+     * @param array|\ArrayObject $array
+     * @return mixed|null
+     */
+    public static function last($array, $callback = null, $default = null)
+    {
+        return static::first(array_reverse((array) $array, true), $callback, $default);
     }
 }

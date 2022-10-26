@@ -3,14 +3,18 @@ namespace TypeRocket\Utility;
 
 class Str
 {
+    public const UTF8 = 'UTF-8';
+    public const ASCII = 'ASCII';
+    public const LATIN1 = 'ISO-8859-1';
+
     /**
      * @param string $str
-     * @param string $delimiters
      *
-     * @return false|string|string[]
+     * @return false|string
      */
-    public static function uppercaseWords($str, $delimiters = " \t\r\n\f\v" ) {
-        return mb_convert_case($str, MB_CASE_TITLE, 'UTF-8');
+    public static function uppercaseWords($str)
+    {
+        return mb_convert_case($str, MB_CASE_TITLE, static::UTF8);
     }
 
     /**
@@ -21,7 +25,8 @@ class Str
      * @param string $failed
      * @return string
      */
-    public static function classNames($defaults, $classes = null, $failed = '') {
+    public static function classNames($defaults, $classes = null, $failed = '')
+    {
         if(!$result = Arr::reduceAllowedStr(is_array($defaults) ? $defaults : $classes)) {
             $result = !is_array($classes) ? $classes : $failed;
         }
@@ -32,13 +37,44 @@ class Str
     }
 
     /**
-     * Not blank string
+     * Quiet
+     *
+     * Is null or is blank after trim.
+     *
+     * @param string|null $string
+     *
+     * @return bool
+     */
+    public static function quiet(?string $string)
+    {
+        return !isset($string) || (trim($string) === '');
+    }
+
+    /**
+     * Blank
+     *
+     * Blank value or empty string
      *
      * @param string|null $value
      *
      * @return bool
      */
-    public static function notBlank($value) {
+    public static function blank(?string $string) : bool
+    {
+        return !isset($string) || $string === '';
+    }
+
+    /**
+     * Not Blank
+     *
+     * Not blank value or empty string
+     *
+     * @param string|null $value
+     *
+     * @return bool
+     */
+    public static function notBlank($value)
+    {
         return !(!isset($value) || $value === '');
     }
 
@@ -46,44 +82,39 @@ class Str
      * String Ends
      *
      * @param string $needle
-     * @param string $subject
+     * @param string $haystack
      *
      * @return bool
      */
-    public static function ends( $needle, $subject )
+    public static function ends($needle, $haystack) : bool
     {
-        $length = mb_strlen($needle);
-        if ($length == 0) {
-            return true;
-        }
-
-        return ( mb_substr($subject, -$length ) === $needle );
+        return str_ends_with($haystack, $needle);
     }
 
     /**
      * String Contains
      *
      * @param string $needle
-     * @param string $subject
+     * @param string $haystack
      *
      * @return bool
      */
-    public static function contains($needle, $subject)
+    public static function contains($needle, $haystack) : bool
     {
-        return ( mb_strpos( (string) $subject, (string) $needle ) !== false );
+        return str_contains($haystack, $needle); // ( mb_strpos( (string) $subject, (string) $needle ) !== false );
     }
 
     /**
      * String Starts
      *
      * @param string $needle
-     * @param string $subject
+     * @param string $haystack
      *
      * @return bool
      */
-    public static function starts($needle, $subject)
+    public static function starts($needle, $haystack): bool
     {
-        return mb_substr( (string) $subject, 0, mb_strlen($needle) ) === $needle;
+        return str_starts_with($haystack, $needle);
     }
 
     /**
@@ -242,6 +273,20 @@ class Str
     }
 
     /**
+     * Explode Starting From Right
+     *
+     * @param string $separator
+     * @param string $string
+     * @param int $limit
+     *
+     * @return array
+     */
+    public static function explodeFromRight(string $separator, string $string, int $limit = PHP_INT_MAX)
+    {
+        return array_reverse(array_map('strrev', explode($separator, strrev($string), $limit)));
+    }
+
+    /**
      * Make Words
      *
      * @param string $subject
@@ -253,6 +298,115 @@ class Str
     {
         $words = str_replace($separator, ' ', $subject);
         return $uppercase ? static::uppercaseWords($words) : $words;
+    }
+
+    /**
+     * Limit Length
+     *
+     * @param string $string
+     * @param int $limit
+     * @param string $end
+     *
+     * @return string
+     */
+    public static function limit(string $string, int $limit, string $end = '') : string
+    {
+        $length = static::length($string, static::UTF8);
+
+        if ($length <= $limit) {
+            return $string;
+        }
+
+        $width = mb_strwidth($string, static::UTF8) - $length;
+
+        return rtrim(mb_strimwidth($string, 0, $limit + $width, '', static::UTF8)).$end;
+    }
+
+    /**
+     * Length
+     *
+     * @param string $string
+     * @param string|null $encoding
+     *
+     * @return int
+     */
+    public static function length($string, ?string $encoding = null) : int
+    {
+        if ($encoding) {
+            return mb_strlen($string, $encoding);
+        }
+
+        return mb_strlen($string);
+    }
+
+    /**
+     * Maxed
+     *
+     * Is string max length
+     *
+     * @param string $string
+     * @param int $max
+     * @param string|null $encoding
+     *
+     * @return bool
+     */
+    public static function maxed($string, int $max, ?string $encoding = null) : bool
+    {
+        return !(static::length($string, $encoding) <= $max);
+    }
+
+    /**
+     * Min
+     *
+     * Is string min length
+     *
+     * @param string $string
+     * @param int $min
+     * @param string|null $encoding
+     *
+     * @return bool
+     */
+    public static function min($string, int $min, ?string $encoding = null) : bool
+    {
+        return static::length($string, $encoding) >= $min;
+    }
+
+    /**
+     * Convert the given string to lower-case.
+     *
+     * @param string $string
+     * @param string|null $encoding
+     *
+     * @return string
+     */
+    public static function lower($string, ?string $encoding = null)
+    {
+        return mb_strtolower($string, $encoding ?? static::UTF8);
+    }
+
+    /**
+     * Get Encoding
+     *
+     * @param string|null $encoding
+     *
+     * @return string
+     */
+    public static function encoding(?string $encoding = null) : string
+    {
+        $encoding = $encoding ?? mb_internal_encoding();
+        return ! static::quiet($encoding) ? $encoding : static::UTF8;
+    }
+
+    /**
+     * Reverse
+     *
+     * @param string $string
+     *
+     * @return string
+     */
+    public static function reverse(string $string) : string
+    {
+        return implode(array_reverse(mb_str_split($string)));
     }
 
 }

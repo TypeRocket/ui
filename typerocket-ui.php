@@ -3,9 +3,9 @@
 Plugin Name: TypeRocket UI
 Plugin URI: https://typerocket.com/ui/
 Description: This plugin provides a powerful user interface for creating post types, taxonomies, and meta boxes.
-Version: 5.0.10
+Version: 5.0.11
 Requires at least: 5.5
-Requires PHP: 7.2
+Requires PHP: 7.4
 Author: TypeRocket
 Author URI: https://typerocket.com
 License: GPLv3 or later

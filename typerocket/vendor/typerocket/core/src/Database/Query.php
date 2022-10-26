@@ -18,6 +18,8 @@ class Query
     protected $selectTable = null;
     protected $joinAs = null;
     protected $tableAs = null;
+    protected ?string $connection = null;
+    protected ?\wpdb $wpdb = null;
 
     /**
      * Query constructor.
@@ -28,6 +30,8 @@ class Query
      */
     public function __construct($table = null, $selectTable = null, $idColumn = null)
     {
+        $wpdb = $this->establishConnection();
+
         if(is_string($table)) {
             $this->query['table'] = $table;
         }
@@ -37,6 +41,24 @@ class Query
         if($idColumn) {
             $this->idColumn = $idColumn;
         }
+
+        if(!$this->wpdb) {
+            $this->setWpdb($wpdb);
+        }
+    }
+
+    /**
+     * @return \wpdb
+     */
+    protected function establishConnection()
+    {
+        $connection = Connection::getFromContainer();
+
+        if(!$name = $this->connection) {
+            return $connection->default();
+        }
+
+        return $connection->get($name);
     }
 
     /**
@@ -103,10 +125,11 @@ class Query
     /**
      * @return string
      */
-    public function getIdColumWithTable()
+    public function getIdColumWithTable($idColumn = null)
     {
+        $idColumn ??= $this->idColumn;
         $table = $this->query['table'] ? "`{$this->query['table']}`." : '';
-        return "{$table}`{$this->idColumn}`";
+        return "{$table}`{$idColumn}`";
     }
 
     /**
@@ -137,6 +160,25 @@ class Query
         $this->tableAs = $as;
 
         return $this;
+    }
+
+    /**
+     * @param \wpdb|null $wpdb
+     * @return $this
+     */
+    public function setWpdb(?\wpdb $wpdb = null)
+    {
+        $this->wpdb = $wpdb;
+
+        return $this;
+    }
+
+    /**
+     * @return \wpdb
+     */
+    public function getWpdb() : \wpdb
+    {
+        return $this->wpdb;
     }
 
     /**
@@ -246,6 +288,22 @@ class Query
     }
 
     /**
+     * Last Where
+     *
+     * @return array|null
+     */
+    public function lastWhere() : ?array
+    {
+        $key = array_key_last($this->query['where']);
+
+        if($key === null) {
+            return null;
+        }
+
+        return ['key' => $key, 'value' => $this->query['where'][$key]];
+    }
+
+    /**
      * Modify Where
      *
      * @param int $index
@@ -254,17 +312,23 @@ class Query
      *
      * @return $this
      */
-    public function modifyWhere($index, $args, $merge = true)
+    public function modifyWhere($index, $args, $merge = true, $callback = null)
     {
         if(empty($this->query['where'])) {
             return $this;
         }
 
         if($index === -1) {
-            $index = count($this->query['where']) - 1;
+            $index = array_key_last($this->query['where']);
         }
 
-        $this->query['where'][$index] = $merge ? array_merge($this->query['where'][$index], $args) : $args;
+        $where = $merge ? array_merge($this->query['where'][$index], $args) : $args;
+
+        if(is_callable($callback)) {
+            $callback($where, $this, $index);
+        }
+
+        $this->query['where'][$index] = $where;
 
         return $this;
     }
@@ -883,8 +947,7 @@ class Query
      */
     protected function runQuery( $query = [] )
     {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
+        $wpdb = $this->wpdb;
 
         if( empty($query) ) {
             $query = $this->query;
@@ -902,6 +965,15 @@ class Query
             $result = false;
             if( $wpdb->query( $sql ) ) {
                 $result = $wpdb->insert_id;
+
+                if($result === 0 && $wpdb->rows_affected === 1)
+                {
+                    $column_id = $this->getIdColumn();
+
+                    if($column_id_value = $this->query['data'][$column_id] ?? null) {
+                        return $column_id_value;
+                    }
+                }
             }
         } elseif( array_key_exists('update', $query) ) {
             $result = $wpdb->query( $sql );
@@ -934,9 +1006,6 @@ class Query
      */
     public function compileFullQuery()
     {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
-
         $sql_insert_columns = $sql_union = $sql_insert_values = $distinct = '';
 
         // compilers
@@ -996,9 +1065,8 @@ class Query
      *
      * @return string
      */
-    protected function compileSelectColumns() {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
+    protected function compileSelectColumns()
+    {
         $query = $this->query;
         $sql = '*';
         $selectTable = $this->selectTable;
@@ -1095,8 +1163,7 @@ class Query
      */
     protected function compileTake()
     {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
+        $wpdb = $this->wpdb;
         $query = $this->query;
         $sql = '';
 
@@ -1149,8 +1216,6 @@ class Query
      */
     protected function compileInsert()
     {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
         $query = $this->query;
         $sql_insert = [ 'sql_insert_columns' => '', 'sql_insert_values' => '' ];
 
@@ -1196,9 +1261,8 @@ class Query
      *
      * @return string
      */
-    protected function compileUpdate() {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
+    protected function compileUpdate()
+    {
         $query = $this->query;
         $sql = '';
 
@@ -1242,8 +1306,7 @@ class Query
      */
     protected function prepareValue( $value )
     {
-        /** @var \wpdb $wpdb */
-        global $wpdb;
+        $wpdb = $this->wpdb;
         $prepared = null;
 
         if( is_array($value) ) {
@@ -1408,6 +1471,10 @@ class Query
      */
     protected function tickSqlName($column)
     {
+        if($column instanceof SqlRaw) {
+            return $column;
+        }
+
         $c = preg_replace($this->columnPattern, '', $column);
 
         if(!Str::contains('`', $column)) {

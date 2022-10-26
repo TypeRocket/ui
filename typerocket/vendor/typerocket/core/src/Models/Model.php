@@ -6,6 +6,7 @@ use JsonSerializable;
 use ReflectionClass;
 use ReflectionException;
 use TypeRocket\Core\Container;
+use TypeRocket\Database\Connection;
 use TypeRocket\Database\EagerLoader;
 use TypeRocket\Database\Query;
 use TypeRocket\Database\Results;
@@ -20,6 +21,7 @@ use TypeRocket\Models\Traits\ArrayReplaceRecursiveValues;
 use TypeRocket\Models\Traits\FieldValue;
 use TypeRocket\Models\Traits\Searchable;
 use TypeRocket\Services\AuthorizerService;
+use TypeRocket\Template\Composer;
 use TypeRocket\Utility\Arr;
 use TypeRocket\Utility\Data;
 use TypeRocket\Utility\Inflect;
@@ -30,41 +32,196 @@ class Model implements Formable, JsonSerializable
 {
     use Searchable, FieldValue, ArrayReplaceRecursiveValues;
 
+    /**
+     * The properties that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [];
-    protected $restMetaFields = [];
-    protected $closed = false;
+
+    /**
+     * The properties that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $guard = ['id'];
-    protected $format = [];
-    protected $cast = [];
-    protected $static = [];
-    protected $builtin = [];
+
+    /**
+     * The properties that should not be saved as meta.
+     *
+     * @var array<int, string>
+     */
     protected $metaless = [];
+
+    /**
+     * The properties that should not be show by the
+     * TypeRocket REST API endpoint.
+     *
+     * @var array<int, string>
+     */
     protected $private = [];
-    protected $resource = null;
-    protected $routeResource = null;
-    protected $table = null;
-    protected $composer;
-    protected $errors = null;
-    /** @var mixed|Query  */
-    protected $query;
+
+    /**
+     * Property key in dot notation and the function to
+     * call upon that value before persisting.
+     *
+     * @var array<string, null|callable>
+     */
+    protected $format = [];
+
+    /**
+     * The properties that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $cast = [];
+
+    /**
+     * The properties that should be static.
+     *
+     * @var array<string, mixed>
+     */
+    protected $static = [];
+
+    /**
+     * The properties that relate to WordPress core tables.
+     *
+     * @var array<int, string>
+     */
+    protected $builtin = [];
+
+    /**
+     * The properties that relate to database columns or meta.
+     *
+     * @var array<string, mixed>
+     */
     protected $properties = [];
-    protected $propertiesUnaltered = null;
+
+    /**
+     * The meta fields for the WordPress REST API.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    protected $restMetaFields = [];
+
+    /**
+     * @var bool
+     */
+    protected $closed = false;
+
+    /**
+     * @var string|null
+     */
+    protected $resource;
+
+    /**
+     * @var string|null
+     */
+    protected $routeResource;
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table;
+
+    /**
+     * @var Composer
+     */
+    protected $composer;
+
+    /**
+     * The errors supplied internal model methods.
+     *
+     * @var array<int, string>
+     */
+    protected $errors;
+
+    /** @var Query */
+    protected $query;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $propertiesUnaltered;
+
+    /**
+     * Default properties values
+     *
+     * @var array
+     */
     protected $explicitProperties = [];
+
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
     protected $idColumn = 'id';
+
+    /**
+     * @var string
+     */
     protected $resultsClass = Results::class;
-    protected $currentRelationshipModel = null;
-    protected $relatedBy = null;
+
+    /**
+     * @var null|Model
+     */
+    protected $currentRelationshipModel;
+
+    /**
+     * @var array
+     */
+    #[ArrayShape(['type' => 'string', 'query' => 'array', 'where_on' => 'array'])]
+    protected $relatedBy;
+
+    /**
+     * @var array
+     */
     protected $relationships = [];
-    protected $junction = null;
-    protected $with = null;
+
+    /**
+     * @var array
+     */
+    #[ArrayShape(['table' => 'string', 'columns' => 'array', 'id_foreign' => 'int|string'])]
+    protected $junction;
+
+    /**
+     * The relations to eager load on every query.
+     *
+     * @var array
+     */
+    protected $with;
+
+    /**
+     * Will data be added to the WordPress core cache if there
+     * is an implementation for caching the model data.
+     *
+     * @var bool
+     */
     protected $cache = true;
+
+    /**
+     * The properties that relate to database columns or meta.
+     *
+     * @var array<string, string>
+     */
+    #[ArrayShape(['key' => 'string|null', 'value' => 'string|null'])]
     protected $fieldOptions = [
         'key' => null,
         'value' => null,
     ];
 
-    /** @var array use this for your own custom caching at the model level */
+    /**
+     * @var array use this for your own custom caching at the model level
+     */
     protected $dataCache = [];
+
+    /**
+     * @var string|null name of connection from database drivers config list
+     */
+    protected $connection = null;
 
     /**
      * Construct Model based on resource
@@ -72,10 +229,7 @@ class Model implements Formable, JsonSerializable
      */
     public function __construct()
     {
-        /** @var wpdb $wpdb */
-        global $wpdb;
-
-        $type = null;
+        $wpdb = $this->establishConnection();
 
         try {
             $type = (new ReflectionClass( $this ))->getShortName();
@@ -87,8 +241,9 @@ class Model implements Formable, JsonSerializable
             $this->resource = strtolower( Inflect::pluralize($type) );
         }
 
-        $this->table = $this->initTable( $wpdb );
-        $this->query = $this->initQuery( new Query );
+        $query = $this->setupQueryConnectionForModel($wpdb);
+        $this->table = $this->initTable( $query->getWpdb() );
+        $this->query = $this->initQuery( $query );
         $this->query->resultsClass = $this->resultsClass;
         $this->query->table($this->getTable());
         $this->query->setIdColumn($this->idColumn);
@@ -96,6 +251,38 @@ class Model implements Formable, JsonSerializable
         do_action('typerocket_model', $this );
 
         $this->init();
+    }
+
+    /**
+     * @return \wpdb
+     */
+    protected function establishConnection()
+    {
+        $connection = Connection::getFromContainer();
+        $name = $this->connection;
+
+        if(!$name) {
+            return $connection->default();
+        }
+
+        return $connection->get($name);
+    }
+
+    /**
+     * @return string
+     */
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    /**
+     * @param \wpdb $wpdb
+     * @return Query
+     */
+    public function setupQueryConnectionForModel(\wpdb $wpdb)
+    {
+        return (new Query)->setWpdb($wpdb);
     }
 
     /**
@@ -593,7 +780,7 @@ class Model implements Formable, JsonSerializable
     public function setProperty( $key, $value = null )
     {
         if($this->hasSetMutator($key)) {
-             $value = $this->mutatePropertySet($key, $value);
+            $value = $this->mutatePropertySet($key, $value);
         }
 
         if($current_value = $this->propertiesUnaltered[$key] ?? null) {
@@ -623,11 +810,11 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
-    * Get an attribute from the model.
-    *
-    * @param  string  $key
-    * @return mixed
-    */
+     * Get an attribute from the model.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
     public function getProperty($key)
     {
         if (array_key_exists($key, $this->properties) || $this->hasGetMutator($key)) {
@@ -1456,12 +1643,13 @@ class Model implements Formable, JsonSerializable
 
     /**
      * @param string $relationship
+     * @param bool $exists
      * @param null|callable $scope
-     *
+     * @param string $condition AND, OR
      * @return $this
      * @throws \Exception
      */
-    public function has(string $relationship, $scope = null)
+    public function whereRelationship(string $relationship, bool $exists, $scope = null, $condition = 'AND')
     {
         if(!method_exists($this, $relationship)) {
             throw new \Exception("No such relationship of '{$relationship}' exists for " . get_class($this));
@@ -1473,8 +1661,17 @@ class Model implements Formable, JsonSerializable
             throw new \Exception("Trying to get relationship of '{$relationship}' but no Model class is returned for " . get_class($this));
         }
 
-        $rel->getQuery()->modifyWhere(-1, [
-            'value' => $this->getQuery()->getIdColumWithTable(),
+        $related = $rel->getRelatedBy();
+        $id_column = null;
+        $where_on_index = -1;
+
+        if($related) {
+            $id_column = $related['query']['id_local'] ?? $this->getIdColumn();
+            $where_on_index = $related['where_on']['key'];
+        }
+
+        $rel->getQuery()->modifyWhere($where_on_index, [
+            'value' => $this->getQuery()->getIdColumWithTable($id_column),
             'operator' => '=',
             'raw' => true
         ]);
@@ -1483,9 +1680,42 @@ class Model implements Formable, JsonSerializable
             $scope($rel);
         }
 
-        $this->query->merge($rel->getQuery());
+        $exists = $exists ? 'EXISTS ' : 'NOT EXISTS ';
+        $exists .= '(' . $rel->getQuery()->compileFullQuery() . ')';
+
+        $this->query->appendRawWhere($condition, $exists);
 
         return $this;
+    }
+
+    /**
+     * Has No / Doesn't Have
+     *
+     * @param string $relationship
+     * @param null|callable $scope
+     * @param string $condition
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    public function hasNo(string $relationship, $scope = null, $condition = 'AND')
+    {
+        return $this->whereRelationship($relationship, false, $scope, $condition);
+    }
+
+    /**
+     * Has
+     *
+     * @param string $relationship
+     * @param null|callable $scope
+     * @param string $condition
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    public function has(string $relationship, $scope = null, $condition = 'AND')
+    {
+        return $this->whereRelationship($relationship, true, $scope, $condition);
     }
 
     /**
@@ -1502,6 +1732,54 @@ class Model implements Formable, JsonSerializable
         }
 
         return $this->query->count($column);
+    }
+
+    /**
+     * Sum
+     *
+     * @param string $column
+     *
+     * @return array|bool|false|int|null|object
+     */
+    public function sum( $column )
+    {
+        return $this->query->sum($column);
+    }
+
+    /**
+     * Min
+     *
+     * @param string $column
+     *
+     * @return array|bool|false|int|null|object
+     */
+    public function min( $column )
+    {
+        return $this->query->min($column);
+    }
+
+    /**
+     * Max
+     *
+     * @param string $column
+     *
+     * @return array|bool|false|int|null|object
+     */
+    public function max( $column )
+    {
+        return $this->query->max($column);
+    }
+
+    /**
+     * Average
+     *
+     * @param string $column
+     *
+     * @return array|bool|false|int|null|object
+     */
+    public function avg( $column )
+    {
+        return $this->query->avg($column);
     }
 
     /**
@@ -1773,80 +2051,137 @@ class Model implements Formable, JsonSerializable
     /**
      * Has One
      *
-     * @param string $modelClass
-     * @param null|string $id_foreign
+     * @template M
      *
+     * @param class-string<M> $modelClass
+     * @param null|string $id_foreign
+     * @param null|string|callable $id_local
      * @param null|callable $scope
-     * @return mixed|null
+     *
+     * @return null|Model|M
      */
-    public function hasOne($modelClass, $id_foreign = null, $scope = null)
+    public function hasOne($modelClass, $id_foreign = null, $id_local = null, $scope = null)
     {
-        $id = $this->getID();
+        /** @var Model $relationship */
+        $relationship = new $modelClass;
+        $relationship->setRelatedModel( $this );
+
+        if(is_callable($id_local) && is_null($scope)) {
+            $scope = $id_local;
+            $id_local = $this->getIdColumn();
+        } elseif(is_null($id_local) && is_null($scope)) {
+            $id_local = $this->getIdColumn();
+        }
 
         if( ! $id_foreign && $this->resource ) {
             $id_foreign = $this->resource . '_id';
         }
 
-        /** @var Model $relationship */
-        $relationship = new $modelClass;
-        $relationship->setRelatedModel( $this );
         $relationship->relatedBy = [
             'type' => 'hasOne',
             'query' => [
                 'caller' => $this,
                 'class' => $modelClass,
                 'id_foreign' => $id_foreign,
+                'id_local' => $id_local,
                 'scope' => $scope
             ]
         ];
 
-        return $relationship->findAll()->where( $id_foreign, $id)->take(1);
+        if(is_callable($scope)) {
+            $scope($relationship);
+        }
+
+        $rel_table = $relationship->getTable();
+        $id_foreign = $id_foreign ?? $relationship->getIdColumn();
+        $id_foreign_where = str_contains($id_foreign, '.') ? $id_foreign : "{$rel_table}.$id_foreign";
+
+        $id = $this->getPropertyValueDirect($id_local);
+        $result = $relationship->where($id_foreign_where, $id)->take(1);
+        $relationship->relatedBy['where_on'] = $relationship->getQuery()->lastWhere();
+
+        return $result;
     }
 
     /**
      * Belongs To
      *
-     * @param string $modelClass
+     * @template M
+     *
+     * @param class-string<M> $modelClass
      * @param null|string $id_local
+     * @param null|string|callable $id_foreign
      * @param null|callable $scope
      *
-     * @return $this|null
+     * @return null|Model|M
      */
-    public function belongsTo($modelClass, $id_local = null, $scope = null)
+    public function belongsTo($modelClass, $id_local = null, $id_foreign = null, $scope = null)
     {
         /** @var Model $relationship */
         $relationship = new $modelClass;
         $relationship->setRelatedModel( $this );
-        $relationship->relatedBy = [
-            'type' => 'belongsTo',
-            'query' => [
-                'caller' => $this,
-                'class' => $modelClass,
-                'local_id' => $id_local,
-                'scope' => $scope
-            ]
-        ];
+
+        if(is_callable($id_foreign) && is_null($scope)) {
+            $scope = $id_foreign;
+            $id_foreign = $relationship->getIdColumn();
+        } elseif(is_null($id_foreign) && is_null($scope)) {
+            $id_foreign = $relationship->getIdColumn();
+        } else {
+            $id_foreign = $id_foreign ?? $relationship->getIdColumn();
+        }
 
         if( ! $id_local && $relationship->resource ) {
             $id_local = $relationship->resource . '_id';
         }
 
+        $relationship->relatedBy = [
+            'type' => 'belongsTo',
+            'query' => [
+                'caller' => $this,
+                'class' => $modelClass,
+                'id_local' => $id_local,
+                'id_foreign' => $id_foreign,
+                'scope' => $scope
+            ]
+        ];
+
+        if(is_callable($scope)) {
+            $scope($relationship);
+        }
+
         $id = $this->getProperty( $id_local );
-        return $relationship->where( $relationship->getIdColumn(), $id)->take(1);
+
+        $rel_table = $relationship->getTable();
+        $id_foreign_where = str_contains($id_foreign, '.') ? $id_foreign : "{$rel_table}.$id_foreign";
+
+        $result = $relationship->where($id_foreign_where, $id)->take(1);
+        $relationship->relatedBy['where_on'] = $relationship->getQuery()->lastWhere();
+
+        return $result;
     }
 
     /**
      * Has Many
      *
-     * @param string $modelClass
+     * @template M
+     *
+     * @param class-string<M> $modelClass
      * @param null|string $id_foreign
+     * @param null|string|callable $id_local
      * @param null|callable $scope
      *
-     * @return null|Model
+     * @return null|Model|M
      */
-    public function hasMany($modelClass, $id_foreign = null, $scope = null)
+    public function hasMany($modelClass, $id_foreign = null, $id_local = null, $scope = null)
     {
-        $id = $this->getID();
+        if(is_callable($id_local) && is_null($scope)) {
+            $scope = $id_local;
+            $id_local = $this->getIdColumn();
+        } elseif(is_null($id_local) && is_null($scope)) {
+            $id_local = $this->getIdColumn();
+        }
+
+        $id = $id_local ? $this->getPropertyValueDirect($id_local) : $this->getID();
 
         /** @var Model $relationship */
         $relationship = new $modelClass;
@@ -1857,6 +2192,7 @@ class Model implements Formable, JsonSerializable
                 'caller' => $this,
                 'class' => $modelClass,
                 'id_foreign' => $id_foreign,
+                'id_local' => $id_local,
                 'scope' => $scope
             ]
         ];
@@ -1869,48 +2205,44 @@ class Model implements Formable, JsonSerializable
             $scope($relationship);
         }
 
-        return $relationship->findAll()->where( $id_foreign, $id );
+        $rel_table = $relationship->getTable();
+        $id_foreign_where = str_contains($id_foreign, '.') ? $id_foreign : "{$rel_table}.$id_foreign";
+
+        $result = $relationship->findAll()->where( $id_foreign_where, $id );
+        $relationship->relatedBy['where_on'] = $relationship->getQuery()->lastWhere();
+
+        return $result;
     }
 
     /**
      * Belongs To Many
      *
-     * This is for Many to Many relationships.
+     * This is for Many-to-Many relationships.
      *
-     * @param string|array $modelClass
+     * @template M
+     *
+     * @param class-string<M> $modelClass
      * @param string $junction_table
      * @param null|string $id_column
      * @param null|string $id_foreign
      * @param null|callable $scope
      * @param bool $reselect
      *
-     * @return null|Model
+     * @return null|Model|M
      */
-    public function belongsToMany( $modelClass, $junction_table, $id_column = null, $id_foreign = null, $scope = null, $reselect = true )
+    public function belongsToMany( $modelClass, $junction_table, $id_column = null, $id_foreign = null, $scope = null, $reselect = true, $id_local = null, $id_foreign_local = null )
     {
         [$modelClass, $modelClassOn] = array_pad((array) $modelClass, 2, null);
+
         // Column ID
         if( ! $id_column && $this->resource ) {
             $id_column =  $this->resource . '_id';
         }
 
-        $id = $this->$id_column ?? $this->getID();
+        $id = $this->$id_local ?? $this->$id_column ?? $this->getID();
 
         /** @var Model $relationship */
         $relationship = new $modelClass;
-
-        // Foreign ID
-        if( ! $id_foreign && $relationship->resource ) {
-            $id_foreign =  $relationship->resource . '_id';
-        }
-        $rel_table = $relationship->getTable();
-
-        // Set Junction: `attach` and `detach` will use inverse columns
-        $relationship->setJunction( [
-            'table' => $junction_table,
-            'columns' => [$id_foreign, $id_column],
-            'id_foreign' => $id
-        ] );
 
         if(isset($modelClassOn) && class_exists($modelClassOn)) {
             $relationshipOn = new $modelClassOn;
@@ -1918,11 +2250,31 @@ class Model implements Formable, JsonSerializable
             $relationshipOn = $relationship;
         }
 
+        // Foreign ID
+        if( ! $id_foreign && $relationship->resource ) {
+            $id_foreign =  $relationship->resource . '_id';
+        }
+
+        $rel_table = $relationship->getTable();
+        $id_local ??= $this->getIdColumn();
+        $id_foreign_local ??= $relationshipOn->getIdColumn();
+
+        // Set Junction: `attach` and `detach` will use inverse columns
+        $relationship->setJunction([
+            'table' => $junction_table,
+            'columns' => [$id_foreign, $id_column],
+            'id_foreign' => $id,
+            'id_column' => $id_column,
+            'id_local' => $id_local,
+            'id_foreign_local' => $id_foreign_local,
+        ]);
+
         // Join
         $join_table = $junction_table;
-        $rel_join = $relationshipOn->getTable().'.'.$relationshipOn->getIdColumn();
+        $rel_join = $relationshipOn->getTable().'.'.$id_foreign_local;
         $foreign_join = $join_table.'.'.$id_foreign;
         $where_column = $join_table.'.'.$id_column;
+        $id_local_column = $this->getTable().'.'.$id_local;
         $relationship->getQuery()->distinct()->join($join_table, $foreign_join, $rel_join);
 
         $relationship->setRelatedModel( $this );
@@ -1934,6 +2286,9 @@ class Model implements Formable, JsonSerializable
                 'junction_table' => $junction_table,
                 'id_column' => $id_column,
                 'id_foreign' => $id_foreign,
+                'id_local' => $id_local,
+                'id_local_column' => $id_local ? $id_local_column : null,
+                'id_foreign_local' => $id_foreign_local,
                 'where_column' => $where_column,
                 'scope' => $scope
             ]
@@ -1947,7 +2302,10 @@ class Model implements Formable, JsonSerializable
             $relationship->reselect($rel_table.'.*');
         }
 
-        return $relationship->where($where_column, $id)->findAll();
+        $result = $relationship->where($where_column, $id)->findAll();
+        $relationship->relatedBy['where_on'] = $relationship->getQuery()->lastWhere();
+
+        return $result;
     }
 
     /**
@@ -1955,7 +2313,7 @@ class Model implements Formable, JsonSerializable
      *
      * @param array $args
      *
-     * @return array $query
+     * @return array{0: mixed, 1: Query}
      */
     public function attach( array $args )
     {
@@ -1964,6 +2322,7 @@ class Model implements Formable, JsonSerializable
         $junction = $this->getJunction();
         $columns = $junction['columns'];
         $id_foreign = $junction['id_foreign'];
+        $id_foreign_local = $junction['id_foreign_local'];
 
         foreach ( $args as $id ) {
             if( is_array($id) ) {
@@ -1971,7 +2330,11 @@ class Model implements Formable, JsonSerializable
                 $names = array_keys($id);
                 $rows[] = array_merge([ $attach_id, $id_foreign ], $id);
                 $columns = array_merge($columns, $names);
-            } else {
+            }
+            elseif ($id instanceof Model) {
+                $rows[] = [ $id->$id_foreign_local ?? $id->getID(), $id_foreign ];
+            }
+            else {
                 $rows[] = [ $id, $id_foreign ];
             }
         }
@@ -1986,7 +2349,7 @@ class Model implements Formable, JsonSerializable
      *
      * @param array $args
      *
-     * @return array
+     * @return array{0: mixed, 1: Query}
      */
     public function detach( array $args = [] )
     {
@@ -2014,7 +2377,7 @@ class Model implements Formable, JsonSerializable
      *
      * @param array $args
      *
-     * @return array $results
+     * @return array{detach: array{0: mixed, 1: Query}, attach: array{0: mixed, 1: Query}}
      */
     public function sync( array $args = [] )
     {
@@ -2028,14 +2391,13 @@ class Model implements Formable, JsonSerializable
     /**
      * Get Table
      *
-     * @return null
+     * @return string
      */
     public function getTable()
     {
-        /** @var wpdb $wpdb */
-        global $wpdb;
+        $connection = $this->query->getWpdb();
 
-        return  $this->table ? $this->table : $wpdb->prefix . $this->resource;
+        return $this->table ?: $connection->prefix . $this->resource;
     }
 
     /**
@@ -2099,7 +2461,7 @@ class Model implements Formable, JsonSerializable
     /**
      * Get Junction
      *
-     * @return null|string
+     * @return null|array
      */
     public function getJunction()
     {
@@ -2167,7 +2529,7 @@ class Model implements Formable, JsonSerializable
      */
     public function __isset($key)
     {
-        return !is_null($this->getProperty($key));
+        return $key && !is_null($this->getProperty($key));
     }
 
     /**
@@ -2304,7 +2666,7 @@ class Model implements Formable, JsonSerializable
      */
     public function hasGetMutator($key)
     {
-      return method_exists($this, 'get'.Str::camelize($key).'Property');
+        return method_exists($this, 'get'.Str::camelize($key).'Property');
     }
 
     /**
@@ -2328,7 +2690,7 @@ class Model implements Formable, JsonSerializable
      */
     protected function mutatePropertyGet($key, $value)
     {
-      return $this->{'get'.Str::camelize($key).'Property'}($value);
+        return $this->{'get'.Str::camelize($key).'Property'}($value);
     }
 
     /**
@@ -2453,7 +2815,7 @@ class Model implements Formable, JsonSerializable
     }
 
     /**
-     * @return mixed|\TypeRocket\Template\Composer
+     * @return \TypeRocket\Template\Composer
      */
     public function composer()
     {

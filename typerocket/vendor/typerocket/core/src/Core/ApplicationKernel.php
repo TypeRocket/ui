@@ -1,9 +1,12 @@
 <?php
 namespace TypeRocket\Core
 {
+
+    use TypeRocket\Database\Connection;
+    use TypeRocket\Database\Connectors\DatabaseConnector;
+    use TypeRocket\Database\Connectors\WordPressCoreDatabaseConnector;
     use TypeRocket\Models\AuthUser;
     use TypeRocket\Models\WPUser;
-    use TypeRocket\Services\Service;
     use TypeRocket\Utility\RuntimeCache;
 
     class ApplicationKernel
@@ -34,7 +37,6 @@ namespace TypeRocket\Core
          */
         public function default()
         {
-            $this->loadServices();
             (new System)->boot();
         }
 
@@ -63,8 +65,6 @@ namespace TypeRocket\Core
         public function bootSystemAfterMustUseLoaded()
         {
             static::addFilter('muplugins_loaded', function() {
-                $this->loadServices();
-
                 if( is_file(TYPEROCKET_ALT_PATH . '/rooter.php') ) {
                     require(TYPEROCKET_ALT_PATH . '/rooter.php');
                 }
@@ -93,6 +93,10 @@ namespace TypeRocket\Core
                 return new RuntimeCache();
             }, RuntimeCache::ALIAS);
 
+            Container::singleton(Connection::class, function() {
+                return Connection::initDefault();
+            }, Connection::ALIAS);
+
             Container::singleton(AuthUser::class, function() {
                 $user_class = \TypeRocket\Utility\Helper::appNamespace('Models\User');
                 /** @var WPUser $user */
@@ -109,25 +113,6 @@ namespace TypeRocket\Core
             }, AuthUser::ALIAS);
 
             return $this;
-        }
-
-        /**
-         * @throws \ReflectionException
-         */
-        public function loadServices()
-        {
-            // Application Services
-            $services = Config::get('app.services');
-
-            /**
-             * @var string[] $services
-             */
-            foreach ($services as $service) {
-                $instance = (new Resolver)->resolve($service);
-                if($instance instanceof Service) {
-                    Container::register($service, [$instance, 'register'], $instance->isSingleton(), $instance::ALIAS);
-                }
-            }
         }
 
         /**
